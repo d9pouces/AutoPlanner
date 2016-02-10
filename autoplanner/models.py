@@ -2,6 +2,7 @@
 
 from django.utils.translation import ugettext as _
 from django.db import models
+
 __author__ = 'Matthieu Gallet'
 
 
@@ -10,8 +11,8 @@ class Organization(models.Model):
     DAY = 'day'
     WEEK = 'week'
     name = models.CharField(_('Name'), db_index=True, max_length=500)
-    unit = models.IntegerField('Time slice duration (s)', default=86400)
-    offset_time_slice = models.IntegerField('Starting time slice', default=0, blank=True)
+    time_slice_duration = models.IntegerField('Time slice duration (s)', default=86400)
+    time_slice_offset = models.IntegerField('Starting time slice', default=0, blank=True)
 
 
 class Agent(models.Model):
@@ -23,9 +24,14 @@ class Agent(models.Model):
 
 class EventCategory(models.Model):
     organization = models.ForeignKey(_('Organization'), db_index=True)
+    parent = models.ForeignKey('self', db_index=True, null=True, blank=True, default=None,
+                               verbose_name=_('Parent category'))
     name = models.CharField(_('Name'), db_index=True, max_length=500)
     max_contiguous_events = models.IntegerField(_('Maximum successive events for a given person'),
                                                 default=0, blank=True, )
+    balancing_tolerance = models.FloatField(_('Tolerance for balancing the total duration across agents'),
+                                            default=None, null=True, blank=True,
+                                            help_text=_('Leave it blank to avoid balancing'))
 
 
 class Event(models.Model):
