@@ -78,6 +78,85 @@ class Organization(models.Model):
             for agent_pk in agent_pks:
                 yield '%s <= 1' % ' + '.join([self.variable(agent_pk, event_pk) for event_pk in current_events])
 
+    def balancing_constraints(self, agents, all_category_exclusions, categories, events, preferences,
+                              parent_categories_per_category):
+        for category in categories:
+            category_pk = category.pk
+            if category.balancing_mode is None:
+                continue
+            cat_event_pks = [(event.pk, event.duration) for event in events
+                             if category_pk in parent_categories_per_category[event.category_id]]
+            cat_agent_pks = []
+            for agent in agents:
+                agent_pk = agent.pk
+                if agent_pk in all_category_exclusions[category_pk]:
+                    continue
+                agent_preferences = preferences[category_pk].get(agent_pk, (0, 1., 0.))
+                if category.balancing_mode == category.BALANCE_NUMBER:
+                    ag_sum = ['%g * %s' % (agent_preferences[1], self.variable(agent_pk, x[0])) for x in cat_event_pks]
+                else:
+                    ag_sum = ['%g * %d * %s' % (agent_preferences[1], x[1], self.variable(agent_pk, x[0]))
+                              for x in cat_event_pks]
+                yield '%g + %s = %s' % (agent_preferences[0], ag_sum, self.category_variable(category_pk, agent_pk))
+                cat_agent_pks.append(agent_pk)
+            ag_sum = [self.category_variable(category_pk, agent_pk) for agent_pk in cat_event_pks]
+            yield '%s = %s' % (' + '.join(ag_sum), self.category_variable(category_pk))
+            for agent_pk in cat_agent_pks:
+                yield '%d * %s <= %s + %g' % (len(cat_agent_pks), self.category_variable(category_pk, agent_pk),
+                                              self.category_variable(category_pk), category.balancing_tolerance)
+                yield '%d * %s >= %s - %g' % (len(cat_agent_pks), self.category_variable(category_pk, agent_pk),
+                                              self.category_variable(category_pk), category.balancing_tolerance)
+
+    def affinity_constraints(self, agents, categories, events, preferences, parent_categories_per_category,
+                             all_category_exclusions):
+        affinity_variables = []
+        for category in categories:
+            category_pk = category.pk
+            if category.balancing_mode is None:
+                continue
+            cat_event_pks = [(event.pk, event.duration) for event in events
+                             if category_pk in parent_categories_per_category[event.category_id]]
+            for agent in agents:
+                agent_pk = agent.pk
+                if agent_pk in all_category_exclusions[category_pk]:
+                    continue
+                agent_preferences = preferences[category_pk].get(agent_pk, (0, 1., 0.))
+                affinity_variables += ['%g * %s' % (agent_preferences[2], self.variable(agent_pk, x[0]))
+                                       for x in cat_event_pks if agent_preferences[2]]
+        if affinity_variables:
+            yield '%s = %s' % (' + '.join(affinity_variables), self.affinity_variable)
+        else:
+            yield '0 = %s' % self.affinity_variable
+
+    @staticmethod
+    def get_agent_preferences(categories, agent_pks, agent_category_preferences, parent_categories_per_category):
+        preferences = {a.category_id: {} for a in categories}
+        # preferences[category_pk][agent_pk] = (balancing_offset, balancing_count, affinity)
+        for a in agent_category_preferences:
+            preferences[a.category_id][a.agent_id] = (a.balancing_offset, a.balancing_count, a.affinity)
+        for category in categories:
+            for agent_pk in agent_pks:
+                for parent_pk in parent_categories_per_category[category.pk][1:]:
+                    if agent_pk in preferences[parent_pk]:
+                        preferences[category.pk][agent_pk] = preferences[parent_pk][agent_pk]
+        return preferences
+
+    def get_agent_event_exclusions(self, agents, all_category_exclusions, events, parent_categories_per_category):
+        all_agent_event_exclusions = {event.pk: set() for event in events}
+        for event in events:
+            event_pk = event.pk
+            for category_pk in parent_categories_per_category[event.category_id]:
+                for agent_pk in all_category_exclusions[category_pk]:
+                    all_agent_event_exclusions[event_pk].add(agent_pk)
+            for agent in agents:
+                if agent.start_time_slice > event.start_time_slice:
+                    all_agent_event_exclusions[event_pk].add(agent.pk)
+                elif agent.end_time_slice is not None and agent.end_time_slice < event.end_time_slice:
+                    all_agent_event_exclusions[event_pk].add(agent.pk)
+        for agent_event_exclusion in AgentEventExclusion.objects.filter(organization=self):
+            all_agent_event_exclusions[agent_event_exclusion.event_pk].add(agent_event_exclusion.agent_id)
+        return all_agent_event_exclusions
+
     def constraints(self):
         agents = {x for x in Agent.objects.filter(organization=self)}
         categories = {x for x in Category.objects.filter(organization=self)}
@@ -98,25 +177,16 @@ class Organization(models.Model):
             if a.balancing_count is None:
                 all_category_exclusions[a.category_id].add(a.agent_id)
 
-        all_agent_event_exclusions = {event.pk: set() for event in events}
-        for event in events:
-            event_pk = event.pk
-            for category_pk in parent_categories_per_category[event.category_id]:
-                for agent_pk in all_category_exclusions[category_pk]:
-                    all_agent_event_exclusions[event_pk].add(agent_pk)
-            for agent in agents:
-                if agent.start_time_slice > event.start_time_slice:
-                    all_agent_event_exclusions[event_pk].add(agent.pk)
-                elif agent.end_time_slice is not None and agent.end_time_slice < event.end_time_slice:
-                    all_agent_event_exclusions[event_pk].add(agent.pk)
-        for agent_event_exclusion in AgentEventExclusion.objects.filter(organization=self):
-            all_agent_event_exclusions[agent_event_exclusion.event_pk].add(agent_event_exclusion.agent_id)
+        all_agent_event_exclusions = self.get_agent_event_exclusions(agents, all_category_exclusions, events,
+                                                                     parent_categories_per_category)
 
         agent_pks = {agent.pk for agent in agents}
+        # all events must be done
         available_agents_by_event = {event.pk: (agent_pks - all_agent_event_exclusions[event.pk]) for event in events}
-        for event_pk, agent_pks in available_agents_by_event.items():
-            yield '%s = 1' % ' + '.join([self.variable(agent_pk, event_pk) for agent_pk in agent_pks])
+        for event_pk, event_agent_pks in available_agents_by_event.items():
+            yield '%s = 1' % ' + '.join([self.variable(agent_pk, event_pk) for agent_pk in event_agent_pks])
 
+        # event with a fixed agent
         for event in events:
             if event.fixed and event.agent_id:
                 yield '%s = 1' % self.variable(event.agent_id, event.pk)
@@ -132,43 +202,12 @@ class Organization(models.Model):
                 continue
             yield from self.apply_max_event_affectations(agent_pks, events, max_event_affectations_by_category,
                                                          parent_categories_per_category, category_pk)
-
-        # balancing equations
-        preferences = {a.category_id: {} for a in categories}
-        for a in agent_category_preferences:
-            preferences[a.category_id][a.agent_id] = (a.balancing_offset, a.balancing_count)
-        for category in categories:
-            for agent_pk in agent_pks:
-                for parent_pk in parent_categories_per_category[category.pk][1:]:
-                    if agent_pk in preferences[parent_pk]:
-                        preferences[category.pk][agent_pk] = preferences[parent_pk][agent_pk]
-        for category in categories:
-            category_pk = category.pk
-            if category.balancing_mode is None:
-                continue
-            cat_event_pks = [(event.pk, event.duration) for event in events
-                             if category_pk in parent_categories_per_category[event.category_id]]
-            cat_agent_pks = []
-            for agent in agents:
-                agent_pk = agent.pk
-                if agent_pk in all_category_exclusions[category_pk]:
-                    continue
-                agent_preferences = preferences[category_pk].get(agent_pk, (0, 1.))
-                if category.balancing_mode == category.BALANCE_NUMBER:
-                    ag_sum = ['%g * %s' % (agent_preferences[1], self.variable(agent_pk, x[0])) for x in cat_event_pks]
-                else:
-                    ag_sum = ['%g * %d * %s' % (agent_preferences[1], x[1], self.variable(agent_pk, x[0]))
-                              for x in cat_event_pks]
-                yield '%g + %s = %s' % (agent_preferences[0], ag_sum, self.category_variable(category_pk, agent_pk))
-                cat_agent_pks.append(agent_pk)
-            ag_sum = [self.category_variable(category_pk, agent_pk) for agent_pk in cat_event_pks]
-            yield '%s = %s' % (' + '.join(ag_sum), self.category_variable(category_pk))
-            for agent_pk in cat_agent_pks:
-                yield '%d * %s <= %s + %g' % (len(cat_agent_pks), self.category_variable(category_pk, agent_pk),
-                                              self.category_variable(category_pk), category.balancing_tolerance)
-                yield '%d * %s >= %s - %g' % (len(cat_agent_pks), self.category_variable(category_pk, agent_pk),
-                                              self.category_variable(category_pk), category.balancing_tolerance)
-
+        agent_preferences = self.get_agent_preferences(categories, agent_pks, agent_category_preferences,
+                                                       parent_categories_per_category)
+        yield from self.balancing_constraints(agents, all_category_exclusions, categories, events, agent_preferences,
+                                              parent_categories_per_category)
+        yield from self.affinity_constraints(agents, categories, events, agent_preferences,
+                                             parent_categories_per_category, all_category_exclusions)
         for event_pk, agent_pks in available_agents_by_event.items():
             for agent_pk in agent_pks:
                 yield 'bin %s' % self.variable(agent_pk, event_pk)
@@ -183,6 +222,8 @@ class Organization(models.Model):
         if agent_pk is None:
             return 'c_%s' % category_pk
         return 'c_%s_%s' % (category_pk, agent_pk)
+
+    affinity_variable = 'a'
 
 
 class Agent(models.Model):
@@ -199,8 +240,6 @@ class Category(models.Model):
     parent_category = models.ForeignKey('self', db_index=True, null=True, blank=True, default=None,
                                         verbose_name=_('Parent category'))
     name = models.CharField(_('Name'), db_index=True, max_length=500)
-    min_spacing = models.IntegerField(_('Minimum number of time units between successive events for a given person'),
-                                      default=0, blank=True)
     balancing_mode = models.CharField(_('Balancing mode'),
                                       max_length=10, choices=((None, _('No balancing')),
                                                               (BALANCE_TIME, _('Total event time')),
