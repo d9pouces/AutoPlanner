@@ -1,15 +1,35 @@
 # -*- coding: utf-8 -*-
-
-from django.utils.translation import ugettext as _
-from django.db import models
+from autoplanner.models import Organization, Agent, Category, MaxEventAffectation, Event, AgentCategoryPreferences, \
+    AgentEventExclusion
 
 __author__ = 'Matthieu Gallet'
 
 
-class Organization(models.Model):
-    name = models.CharField(_('Name'), db_index=True, max_length=500)
-    time_slice_duration = models.IntegerField('Time slice duration (s)', default=86400)
-    time_slice_offset = models.IntegerField('Starting time slice', default=0, blank=True)
+class Scheduler(object):
+    def get_agent_exclusions_by_category(self):
+        agent_exclusions_by_category = {category.pk: set() for category in self.categories}
+        for a in self.agent_category_preferences:
+            if a.balancing_count is None:
+                agent_exclusions_by_category[a.category_id].add(a.agent_id)
+        return agent_exclusions_by_category
+
+    def __init__(self, organization: Organization):
+        self.organization = organization
+        self.agents = {x for x in organization.agent_set.all()}
+        self.categories = {x for x in organization.category_set.all()}
+        self.max_event_affectations = {x for x in organization.maxeventaffectation_set.all()}
+        self.events = {x for x in organization.event_set.all()}
+        self.agent_category_preferences = {x for x in organization.agentcategorypreferences_set.all()}
+
+        categories_by_pk = {x.pk: x for x in self.categories}
+        self.parent_categories_per_category = {x.pk: [] for x in self.categories}
+        for category in self.categories:
+            parent_pk = category.pk
+            while parent_pk is not None:
+                self.parent_categories_per_category[category.pk].append(parent_pk)
+                parent_pk = categories_by_pk[parent_pk].parent_category_id
+        self.agent_exclusions_by_category = self.get_agent_exclusions_by_category()
+        self.agent_exclusions_by_event = self.get_agent_exclusions_by_event()
 
     def apply_max_event_affectations(self, agent_pks, events, max_event_affectations_by_category,
                                      parent_categories_per_category, category_pk):
@@ -143,43 +163,24 @@ class Organization(models.Model):
                         preferences[category.pk][agent_pk] = preferences[parent_pk][agent_pk]
         return preferences
 
-    def get_agent_event_exclusions(self, agents, all_category_exclusions, events, parent_categories_per_category):
-        all_agent_event_exclusions = {event.pk: set() for event in events}
+    def get_agent_exclusions_by_event(self, agents, events, parent_categories_per_category):
+        agent_event_exclusions = {event.pk: set() for event in events}
         for event in events:
             event_pk = event.pk
             for category_pk in parent_categories_per_category[event.category_id]:
-                for agent_pk in all_category_exclusions[category_pk]:
-                    all_agent_event_exclusions[event_pk].add(agent_pk)
+                for agent_pk in self.agent_exclusions_by_category[category_pk]:
+                    agent_event_exclusions[event_pk].add(agent_pk)
             for agent in agents:
                 if agent.start_time_slice > event.start_time_slice:
-                    all_agent_event_exclusions[event_pk].add(agent.pk)
+                    agent_event_exclusions[event_pk].add(agent.pk)
                 elif agent.end_time_slice is not None and agent.end_time_slice < event.end_time_slice:
-                    all_agent_event_exclusions[event_pk].add(agent.pk)
+                    agent_event_exclusions[event_pk].add(agent.pk)
         for agent_event_exclusion in AgentEventExclusion.objects.filter(organization=self):
-            all_agent_event_exclusions[agent_event_exclusion.event_pk].add(agent_event_exclusion.agent_id)
-        return all_agent_event_exclusions
+            agent_event_exclusions[agent_event_exclusion.event_pk].add(agent_event_exclusion.agent_id)
+        return agent_event_exclusions
 
     def constraints(self):
-        agents = {x for x in Agent.objects.filter(organization=self)}
-        categories = {x for x in Category.objects.filter(organization=self)}
-        max_event_affectations = {x for x in MaxEventAffectation.objects.filter(organization=self)}
-        events = {x for x in Event.objects.filter(organization=self)}
-        agent_category_preferences = {x for x in AgentCategoryPreferences.objects.filter(organization=self)}
-
-        categories_by_pk = {x.pk: x for x in categories}
-        parent_categories_per_category = {x.pk: [] for x in categories}
-        for category in categories:
-            parent_pk = category.pk
-            while parent_pk is not None:
-                parent_categories_per_category[category.pk].append(parent_pk)
-                parent_pk = categories_by_pk[parent_pk].parent_category_id
-
-        all_category_exclusions = {category.pk: set() for category in categories}
-        for a in agent_category_preferences:
-            if a.balancing_count is None:
-                all_category_exclusions[a.category_id].add(a.agent_id)
-
-        all_agent_event_exclusions = self.get_agent_event_exclusions(agents, all_category_exclusions, events,
+        all_agent_event_exclusions = self.get_agent_exclusions_by_event(agents, all_category_exclusions, events,
                                                                      parent_categories_per_category)
 
         agent_pks = {agent.pk for agent in agents}
@@ -225,67 +226,3 @@ class Organization(models.Model):
         return 'c_c%s_a%s' % (category_pk, agent_pk)
 
     affinity_variable = 'a'
-
-
-class Agent(models.Model):
-    organization = models.ForeignKey(_('Organization'), db_index=True)
-    name = models.CharField(_('Name'), db_index=True, max_length=500)
-    start_time_slice = models.IntegerField(_('Arrival time slice'), db_index=True, default=0, blank=True)
-    end_time_slice = models.IntegerField(_('Leaving time slice'), db_index=True, default=None, blank=True, null=True)
-
-
-class Category(models.Model):
-    BALANCE_TIME = 'time'
-    BALANCE_NUMBER = 'number'
-    organization = models.ForeignKey(_('Organization'), db_index=True)
-    parent_category = models.ForeignKey('self', db_index=True, null=True, blank=True, default=None,
-                                        verbose_name=_('Parent category'))
-    name = models.CharField(_('Name'), db_index=True, max_length=500)
-    balancing_mode = models.CharField(_('Balancing mode'),
-                                      max_length=10, choices=((None, _('No balancing')),
-                                                              (BALANCE_TIME, _('Total event time')),
-                                                              (BALANCE_NUMBER, _('Total event number'))),
-                                      blank=True, null=True, default=None)
-    balancing_tolerance = models.FloatField(_('Tolerance for balancing the total duration across agents'),
-                                            default=1., blank=True)
-    auto_affinity = models.FloatField(_('Affinity for allocating successive events of the same category '
-                                        'to the same agent'), default=0., blank=True)
-
-
-class MaxEventAffectation(models.Model):
-    organization = models.ForeignKey(Organization, db_index=True)
-    category = models.ForeignKey(Category, db_index=True)
-    range_time_slice = models.IntegerField(_('Period length (in time units)'), default=2)
-    event_maximum_count = models.IntegerField(_('Maximum number of events in this range'), default=1)
-    event_maximum_duration = models.BooleanField(_('Use event durations'), default=False)
-
-
-class Event(models.Model):
-    organization = models.ForeignKey(Organization, db_index=True)
-    category = models.ForeignKey(Category, db_index=True)
-    name = models.CharField(_('Name'), db_index=True, max_length=500)
-    start_time_slice = models.IntegerField(_('Start time'), db_index=True)
-    end_time_slice = models.IntegerField(_('End time'), db_index=True, default=None, blank=True, null=True)
-    agent = models.ForeignKey(Agent, db_index=True, null=True, default=None, blank=True)
-    fixed = models.BooleanField(_('Agent is strongly fixed'), db_index=True, default=False)
-
-    @property
-    def duration(self):
-        return self.end_time_slice - self.start_time_slice
-
-
-class AgentCategoryPreferences(models.Model):
-    organization = models.ForeignKey(Organization, db_index=True)
-    category = models.ForeignKey(Category, db_index=True)
-    agent = models.ForeignKey(Agent, db_index=True)
-    affinity = models.FloatField(_('Affinity of the agent for the category.'), default=0., blank=True)
-    balancing_offset = models.FloatField(_('Number of time units already done'), default=0, blank=True)
-    balancing_count = models.FloatField(_('If an agent should perform less events of this category,'
-                                          'it should be > 1.0'), default=1.0, blank=True, null=True,
-                                        help_text=_('Blank if the agent cannot perform events of this category'))
-
-
-class AgentEventExclusion(models.Model):
-    organization = models.ForeignKey(Organization, db_index=True)
-    agent = models.ForeignKey(Agent, db_index=True)
-    event = models.ForeignKey(Event, db_index=True)
