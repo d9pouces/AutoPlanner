@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import re
+import tempfile
+import subprocess
+from django.conf import settings
 from autoplanner.models import Organization
 
 __author__ = 'Matthieu Gallet'
@@ -8,6 +12,9 @@ class Constraint(object):
     def __init__(self, value: str, name: str=''):
         self.value = value
         self.name = name
+
+    def __str__(self):
+        return self.value
 
 
 class Scheduler(object):
@@ -158,8 +165,7 @@ class Scheduler(object):
             cat_event_pks = [event.pk for event in self.events
                              if category_pk in self.parent_categories_by_category[event.category_id]]
             cat_agent_pks = self.agent_pks - self.agent_exclusions_by_category[category_pk]
-            for agent in cat_agent_pks:
-                agent_pk = agent.pk
+            for agent_pk in cat_agent_pks:
                 agent_preferences = self.preferences_by_agent_by_category[category_pk].get(agent_pk, (0, 1., 0.))
                 if category.balancing_mode == category.BALANCE_NUMBER:
                     ag_sum = ['%g * %s' % (agent_preferences[1], self.variable(agent_pk, event_pk))
@@ -172,12 +178,13 @@ class Scheduler(object):
             ag_sum = [self.category_variable(category_pk, agent_pk) for agent_pk in cat_agent_pks]
             yield Constraint('%s = %s' % (' + '.join(ag_sum), self.category_variable(category_pk)))
             for agent_pk in cat_agent_pks:
+                count = len(cat_agent_pks)
                 yield Constraint(
-                    '%d * %s <= %s + %g' % (len(cat_agent_pks), self.category_variable(category_pk, agent_pk),
-                                            self.category_variable(category_pk), category.balancing_tolerance))
+                    '%d * %s <= %s + %g' % (count, self.category_variable(category_pk, agent_pk),
+                                            self.category_variable(category_pk), category.balancing_tolerance * count))
                 yield Constraint(
-                    '%d * %s >= %s - %g' % (len(cat_agent_pks), self.category_variable(category_pk, agent_pk),
-                                            self.category_variable(category_pk), category.balancing_tolerance)
+                    '%d * %s >= %s - %g' % (count, self.category_variable(category_pk, agent_pk),
+                                            self.category_variable(category_pk), category.balancing_tolerance * count)
                 )
 
     def apply_affinity_constraints(self):
@@ -193,11 +200,13 @@ class Scheduler(object):
                 variables += ['%g * %s' % (agent_preferences[2], self.variable(agent_pk, x[0]))
                               for x in cat_event_pks if agent_preferences[2]]
         if variables:
+            yield Constraint('min: -%s' % self.affinity_variable())
             yield Constraint('%s = %s' % (' + '.join(variables), self.affinity_variable()))
         else:
-            yield Constraint('0 = %s' % self.affinity_variable())
+            yield Constraint('min:')
 
     def constraints(self):
+        yield from self.apply_affinity_constraints()
         # all events must be done
         yield from self.apply_all_events_must_be_done()
         # event with a fixed agent
@@ -208,14 +217,19 @@ class Scheduler(object):
             if self.max_event_affectations_by_category[category.pk]:
                 yield from self.apply_max_event_affectations(category.pk)
         yield from self.apply_balancing_constraints()
-        yield from self.apply_affinity_constraints()
         for event_pk, agent_pks in self.available_agents_by_events.items():
             for agent_pk in agent_pks:
-                yield Constraint('bin %s' % self.variable(agent_pk, event_pk))
+                yield Constraint('%s >= 0' % self.variable(agent_pk, event_pk))
+                yield Constraint('%s <= 1' % self.variable(agent_pk, event_pk))
+        for event_pk, agent_pks in self.available_agents_by_events.items():
+            for agent_pk in agent_pks:
+                yield Constraint('int %s' % self.variable(agent_pk, event_pk))
 
     @staticmethod
     def variable(agent_pk, event_pk):
         return 'v_a%s_e%s' % (agent_pk, event_pk)
+
+    result_line_re = '^v_a(\d+)_e(\d+)\s+1$'
 
     @staticmethod
     def category_variable(category_pk, agent_pk=None):
@@ -227,3 +241,37 @@ class Scheduler(object):
     def affinity_variable():
         return 'a'
 
+    def solve(self, verbose=False):
+        """ Return a schedule (if such one exists) as a list of (agent_pk, event_pk)
+        :param verbose:
+        :type verbose:
+        :return:
+        :rtype:
+        """
+        with tempfile.NamedTemporaryFile() as fd:
+            for constraint in self.constraints():
+                if verbose:
+                    print(constraint)
+                fd.write(('%s;\n' % constraint).encode())
+            fd.flush()
+            p = subprocess.Popen([settings.LP_SOLVE_PATH, '-lp', fd.name], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            std_out, std_err = p.communicate()
+        if verbose:
+            print(std_out.decode())
+            print(std_err.decode())
+        result_values = []
+        std_out = std_out.decode()
+        value_re = re.compile(self.result_line_re)
+        for line in std_out.splitlines():
+            matcher = value_re.match(line)
+            if matcher:
+                result_values.append((int(matcher.group(1)), int(matcher.group(2))))
+        return result_values
+
+    @staticmethod
+    def result_by_agent(result_list):
+        result_dict = {}
+        for agent_pk, event_pk in result_list:
+            result_dict.setdefault(agent_pk, set()).add(event_pk)
+        return result_dict
