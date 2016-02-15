@@ -1,15 +1,36 @@
 # -*- coding: utf-8 -*-
+import datetime
+from django.http import HttpRequest
+from django.utils.timezone import utc
 
 from django.utils.translation import ugettext as _
 from django.db import models
+
+YEAR_0 = datetime.datetime(1970, 1, 1, tzinfo=utc)
 
 __author__ = 'Matthieu Gallet'
 
 
 class Organization(models.Model):
     name = models.CharField(_('Name'), db_index=True, max_length=500)
-    time_slice_duration = models.IntegerField('Time slice duration (s)', default=86400)
+    time_slice_duration = models.IntegerField('Time slice duration (s)', default=3600)
     time_slice_offset = models.IntegerField('Starting time slice', default=0, blank=True)
+
+    # noinspection PyUnusedLocal
+    @classmethod
+    def query(cls, request: HttpRequest):
+        return cls.objects.all()
+
+    def __str__(self):
+        return self.name
+
+    def get_time(self, time_slice: int) -> datetime.datetime:
+        return YEAR_0 + datetime.timedelta(seconds=time_slice * self.time_slice_duration) + \
+            datetime.timedelta(seconds=self.time_slice_offset)
+
+    def from_time(self, time: datetime.datetime) -> int:
+        delta = (time - YEAR_0 - datetime.timedelta(seconds=self.time_slice_offset))
+        return int(delta.total_seconds() / self.time_slice_duration)
 
 
 class Agent(models.Model):
@@ -36,6 +57,9 @@ class Category(models.Model):
     auto_affinity = models.FloatField(_('Affinity for allocating successive events of the same category '
                                         'to the same agent'), default=0., blank=True)
 
+    def __str__(self):
+        return self.name
+
 
 class MaxEventAffectation(models.Model):
     organization = models.ForeignKey(Organization, db_index=True)
@@ -57,6 +81,9 @@ class Event(models.Model):
     @property
     def duration(self):
         return self.end_time_slice - self.start_time_slice
+
+    def __str__(self):
+        return self.name
 
 
 class AgentCategoryPreferences(models.Model):

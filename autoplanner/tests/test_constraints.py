@@ -95,3 +95,63 @@ class TestSimple(BaseTest):
         result_list = s.solve(verbose=False)
         result_dict = s.result_by_agent(result_list)
         self.assertEqual({1: {1, 2}, 2: {3}, 3: {4}}, result_dict)
+
+    def test_overlap(self):
+        org = self.get_organization()
+        category_1 = org.category_set.get(name='C1')
+        Agent.objects.filter(organization=org, name__in=['A2', 'A3']).delete()
+        event_1 = Event(organization=org, name='E1', start_time_slice=10, end_time_slice=20, category=category_1)
+        event_1.save()
+        event_2 = Event(organization=org, name='E2', start_time_slice=15, end_time_slice=25, category=category_1)
+        event_2.save()
+        s = Scheduler(org)
+        result_list = s.solve(verbose=False)
+        result_dict = s.result_by_agent(result_list)
+        self.assertEqual({}, result_dict)
+
+        event_2.start_time_slice = 21
+        event_2.save()
+        s = Scheduler(org)
+        result_list = s.solve(verbose=False)
+        result_dict = s.result_by_agent(result_list)
+        self.assertEqual({1: {1, 2}}, result_dict)
+
+        event_2.start_time_slice = 20
+        event_2.save()
+        s = Scheduler(org)
+        result_list = s.solve(verbose=False)
+        result_dict = s.result_by_agent(result_list)
+        self.assertEqual({1: {1, 2}}, result_dict)
+
+        event_2.start_time_slice = 5
+        event_2.end_time_slice = 10
+        event_2.save()
+        s = Scheduler(org)
+        result_list = s.solve(verbose=False)
+        result_dict = s.result_by_agent(result_list)
+        self.assertEqual({1: {1, 2}}, result_dict)
+
+        event_2.start_time_slice = 5
+        event_2.end_time_slice = 11
+        event_2.save()
+        s = Scheduler(org)
+        result_list = s.solve(verbose=False)
+        result_dict = s.result_by_agent(result_list)
+        self.assertEqual({}, result_dict)
+
+        event_2.start_time_slice = 5
+        event_2.end_time_slice = 25
+        event_2.save()
+        s = Scheduler(org)
+        result_list = s.solve(verbose=False)
+        result_dict = s.result_by_agent(result_list)
+        self.assertEqual({}, result_dict)
+
+        event_2.start_time_slice = 12
+        event_2.end_time_slice = 17
+        event_2.save()
+        s = Scheduler(org)
+        result_list = s.solve(verbose=False)
+        result_dict = s.result_by_agent(result_list)
+        self.assertEqual({}, result_dict)
+

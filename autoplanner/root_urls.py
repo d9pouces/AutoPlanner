@@ -7,5 +7,6 @@ __author__ = 'Matthieu Gallet'
 
 
 urls = [
+    url('^org/(?P<organization_pk>\d+)\.html', views.organization, name='organization'),
     url('^index$', views.index, name='index'),
 ]

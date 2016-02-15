@@ -25,6 +25,5 @@ FLOOR_PROJECT_NAME = 'AutoPlanner'
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '8FOOc2ETUHpRYqYvcZ6cvmXD2sz1W88JQjUQFpvHH0KeWRioyU'
 LP_SOLVE_PATH = 'lp_solve'
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+
+DEBUG = True
