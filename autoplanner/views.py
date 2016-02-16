@@ -21,3 +21,4 @@ def organization(request, organization_pk):
         'organization': org,
         'events': events,
     }
+    return render_to_response('autoplanner/organization.html', template_values, RequestContext(request))

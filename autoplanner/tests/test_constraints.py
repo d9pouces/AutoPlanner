@@ -154,4 +154,3 @@ class TestSimple(BaseTest):
         result_list = s.solve(verbose=False)
         result_dict = s.result_by_agent(result_list)
         self.assertEqual({}, result_dict)
-
