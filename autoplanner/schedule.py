@@ -2,8 +2,11 @@
 import re
 import tempfile
 import subprocess
+
 from django.conf import settings
-from autoplanner.models import Organization
+
+from autoplanner.models import Organization, MaxTimeTaskAffectation
+
 
 __author__ = 'Matthieu Gallet'
 
@@ -22,25 +25,25 @@ class Scheduler(object):
         self.organization = organization
         self.agents = {x for x in organization.agent_set.all()}
         self.categories = {x for x in organization.category_set.all()}
-        self.max_event_affectations = {x for x in organization.maxeventaffectation_set.all()}
-        self.events = {x for x in organization.event_set.all()}
+        self.tasks = {x for x in organization.task_set.all()}
         self.agent_category_preferences = {x for x in organization.agentcategorypreferences_set.all()}
 
-        self.event_durations = {event.pk: (event.end_time_slice - event.start_time_slice) for event in self.events}
+        self.task_durations = {task.pk: (task.end_time_slice - task.start_time_slice).total_seconds()
+                                for task in self.tasks}
         self.agent_pks = {x.pk for x in self.agents}
         # self.agent_pks = {agent1.pk, agent2.pk, agent3.pk}
         self.parent_categories_by_category = self.get_parent_categories_by_category()
         # self.parent_categories_by_category[category.pk] = [category.pk, category.parent.pk, category.parent.parent.pk]
         self.agent_exclusions_by_category = self.get_agent_exclusions_by_category()
         # self.agent_exclusions_by_category[category.pk] = {agent1.pk, agent2.pk, agent3.pk}
-        self.agent_exclusions_by_event = self.get_agent_exclusions_by_event()
-        # self.agent_exclusions_by_event[event.pk] = {agent1.pk, agent2.pk, agent3.pk}
+        self.agent_exclusions_by_task = self.get_agent_exclusions_by_task()
+        # self.agent_exclusions_by_task[task.pk] = {agent1.pk, agent2.pk, agent3.pk}
         self.preferences_by_agent_by_category = self.get_preferences_by_agent_by_category()
         # self.preferences_by_agent_by_category[category.pk][agent.pk] = (balancing_offset, balancing_count, affinity)
-        self.max_event_affectations_by_category = self.get_max_event_affectations_by_category()
-        # self.max_event_affectations_by_category[category.pk] = [max_event_affectation_1, max_event_affectation_2]
-        self.available_agents_by_events = {event.pk: (self.agent_pks - self.agent_exclusions_by_event[event.pk])
-                                           for event in self.events}
+        self.max_task_affectations_by_category = self.get_max_task_affectations_by_category()
+        # self.max_task_affectations_by_category[category.pk] = [max_task_affectation_1, max_task_affectation_2]
+        self.available_agents_by_tasks = {task.pk: (self.agent_pks - self.agent_exclusions_by_task[task.pk])
+                                           for task in self.tasks}
 
     def get_parent_categories_by_category(self):
         categories_by_pk = {x.pk: x for x in self.categories}
@@ -59,22 +62,22 @@ class Scheduler(object):
                 agent_exclusions_by_category[a.category_id].add(a.agent_id)
         return agent_exclusions_by_category
 
-    def get_agent_exclusions_by_event(self):
-        agent_event_exclusions = {event.pk: set() for event in self.events}
-        for event in self.events:
-            event_pk = event.pk
-            for category_pk in self.parent_categories_by_category[event.category_id]:
+    def get_agent_exclusions_by_task(self):
+        agent_task_exclusions = {task.pk: set() for task in self.tasks}
+        for task in self.tasks:
+            task_pk = task.pk
+            for category_pk in self.parent_categories_by_category[task.category_id]:
                 for agent_pk in self.agent_exclusions_by_category[category_pk]:
-                    agent_event_exclusions[event_pk].add(agent_pk)
+                    agent_task_exclusions[task_pk].add(agent_pk)
             for agent in self.agents:
                 # TODO optimize
-                if agent.start_time_slice > event.start_time_slice:
-                    agent_event_exclusions[event_pk].add(agent.pk)
-                elif agent.end_time_slice is not None and agent.end_time_slice < event.end_time_slice:
-                    agent_event_exclusions[event_pk].add(agent.pk)
-        for agent_event_exclusion in self.organization.agenteventexclusion_set.all():
-            agent_event_exclusions[agent_event_exclusion.event_pk].add(agent_event_exclusion.agent_id)
-        return agent_event_exclusions
+                if agent.start_time_slice is not None and agent.start_time_slice > task.start_time_slice:
+                    agent_task_exclusions[task_pk].add(agent.pk)
+                elif agent.end_time_slice is not None and agent.end_time_slice < task.end_time_slice:
+                    agent_task_exclusions[task_pk].add(agent.pk)
+        for agent_task_exclusion in self.organization.agenttaskexclusion_set.all():
+            agent_task_exclusions[agent_task_exclusion.task_pk].add(agent_task_exclusion.agent_id)
+        return agent_task_exclusions
 
     def get_preferences_by_agent_by_category(self):
         preferences = {a.pk: {} for a in self.categories}
@@ -87,74 +90,77 @@ class Scheduler(object):
                         preferences[category.pk][agent_pk] = preferences[parent_pk][agent_pk]
         return preferences
 
-    def get_max_event_affectations_by_category(self):
-        max_event_affectations_by_category = {x.pk: [] for x in self.categories}
-        for max_event_affectation in self.max_event_affectations:
-            max_event_affectations_by_category[max_event_affectation.category_id].append(max_event_affectation)
-        return max_event_affectations_by_category
+    def get_max_task_affectations_by_category(self):
+        max_task_affectations_by_category = {x.pk: [] for x in self.categories}
+        for max_affectation in self.organization.maxtaskaffectation_set.all():
+            max_task_affectations_by_category[max_affectation.category_id].append(max_affectation)
+        for max_affectation in self.organization.maxtimetaskaffectation_set.all():
+            max_task_affectations_by_category[max_affectation.category_id].append(max_affectation)
+        return max_task_affectations_by_category
 
-    def apply_max_event_affectations(self, category_pk: int):
-        """ "Agent A cannot execute more than X events of category C in less than T time slices"
+    def apply_max_task_affectations(self, category_pk: int):
+        """ "Agent A cannot execute more than X tasks of category C in less than T time slices"
         :param category_pk:
         """
-        event_data = [(event.pk, event.start_time_slice, event.end_time_slice) for event in self.events
-                      if category_pk in self.parent_categories_by_category[event.category_id]]
-        event_data.sort(key=lambda x: (x[1], x[2]))
+        task_data = [(task.pk, task.start_time_slice, task.end_time_slice) for task in self.tasks
+                      if category_pk in self.parent_categories_by_category[task.category_id]]
+        task_data.sort(key=lambda x: (x[1], x[2]))
         agent_pks = self.agent_pks - self.agent_exclusions_by_category[category_pk]
         previous_start_time_slice = None
-        for index, data in enumerate(event_data):
-            event_pk, start_time_slice, __ = data
+        for index, data in enumerate(task_data):
+            task_pk, start_time_slice, __ = data
             if start_time_slice == previous_start_time_slice:
                 continue
-            current_events = {event_pk}
-            for max_event_affectation in self.max_event_affectations_by_category[category_pk]:
-                end_block_time_slice = start_time_slice + max_event_affectation.range_time_slice
-                event_maximum_duration = max_event_affectation.event_maximum_duration
-                for data_2 in event_data[index + 1:]:
-                    event_pk_2, start_time_slice_2, __ = data_2
+            current_tasks = {task_pk}
+            for max_affectation in self.max_task_affectations_by_category[category_pk]:
+                end_block_time_slice = start_time_slice + max_affectation.range_time_slice
+                for data_2 in task_data[index + 1:]:
+                    task_pk_2, start_time_slice_2, __ = data_2
                     if start_time_slice_2 >= end_block_time_slice:
                         break
-                    current_events.add(event_pk_2)
-                event_maximum_count = max_event_affectation.event_maximum_count
-                if event_maximum_duration:
+                    current_tasks.add(task_pk_2)
+                direction = '<=' if max_affectation.mode == max_affectation.MAXIMUM else '>='
+                if isinstance(max_affectation, MaxTimeTaskAffectation):
                     for agent_pk in agent_pks:
-                        variables = ['%d * %s' % (self.event_durations[event_pk], self.variable(agent_pk, event_pk))
-                                     for event_pk in current_events]
-                        yield Constraint('%s <= %d' % (' + '.join(variables), event_maximum_count))
+                        variables = ['%d * %s' % (self.task_durations[task_pk], self.variable(agent_pk, task_pk))
+                                     for task_pk in current_tasks]
+                        yield Constraint('%s %s %d' % (' + '.join(variables), direction,
+                                                       max_affectation.task_maximum_time))
                 else:
                     for agent_pk in agent_pks:
-                        variables = [self.variable(agent_pk, event_pk) for event_pk in current_events]
-                        yield Constraint('%s <= %d' % (' + '.join(variables), event_maximum_count))
+                        variables = [self.variable(agent_pk, task_pk) for task_pk in current_tasks]
+                        yield Constraint('%s %s %d' % (' + '.join(variables), direction,
+                                                       max_affectation.task_maximum_count))
             previous_start_time_slice = start_time_slice
 
-    def apply_all_events_must_be_done(self):
-        """ "Exactly one agent must perform each event"
+    def apply_all_tasks_must_be_done(self):
+        """ "Exactly one agent must perform each task"
         """
-        for event_pk, event_agent_pks in self.available_agents_by_events.items():
-            yield Constraint('%s = 1' % ' + '.join([self.variable(agent_pk, event_pk) for agent_pk in event_agent_pks]))
+        for task_pk, task_agent_pks in self.available_agents_by_tasks.items():
+            yield Constraint('%s = 1' % ' + '.join([self.variable(agent_pk, task_pk) for agent_pk in task_agent_pks]))
 
-    def apply_fixed_events(self):
-        """ "Event E must be performed by agent A" """
-        for event in self.events:
-            if event.fixed and event.agent_id:
-                yield Constraint('%s = 1' % self.variable(event.agent_id, event.pk))
+    def apply_fixed_tasks(self):
+        """ "Task E must be performed by agent A" """
+        for task in self.tasks:
+            if task.fixed and task.agent_id:
+                yield Constraint('%s = 1' % self.variable(task.agent_id, task.pk))
 
-    def apply_single_event_per_agent(self):
+    def apply_single_task_per_agent(self):
         """ "Agent X can perform at most one task at a time" """
-        current_events = set()
-        resumed_events = {}
-        for event in self.events:
-            resumed_events.setdefault(event.start_time_slice, []).append((event.pk, current_events.add))
-            resumed_events.setdefault(event.end_time_slice, []).append((event.pk, current_events.remove))
-        time_slices = [x for x in resumed_events]
+        current_tasks = set()
+        resumed_tasks = {}
+        for task in self.tasks:
+            resumed_tasks.setdefault(task.start_time_slice, []).append((task.pk, current_tasks.add))
+            resumed_tasks.setdefault(task.end_time_slice, []).append((task.pk, current_tasks.remove))
+        time_slices = [x for x in resumed_tasks]
         time_slices.sort()
         for time_slice in time_slices:
-            for (event_pk, action) in resumed_events[time_slice]:
-                action(event_pk)
-            if not current_events:
+            for (task_pk, action) in resumed_tasks[time_slice]:
+                action(task_pk)
+            if not current_tasks:
                 continue
             for agent_pk in self.agent_pks:
-                variables = [self.variable(agent_pk, event_pk) for event_pk in current_events]
+                variables = [self.variable(agent_pk, task_pk) for task_pk in current_tasks]
                 yield Constraint('%s <= 1' % ' + '.join(variables))
 
     def apply_balancing_constraints(self):
@@ -162,17 +168,17 @@ class Scheduler(object):
             if category.balancing_mode is None:
                 continue
             category_pk = category.pk
-            cat_event_pks = [event.pk for event in self.events
-                             if category_pk in self.parent_categories_by_category[event.category_id]]
+            cat_task_pks = [task.pk for task in self.tasks
+                             if category_pk in self.parent_categories_by_category[task.category_id]]
             cat_agent_pks = self.agent_pks - self.agent_exclusions_by_category[category_pk]
             for agent_pk in cat_agent_pks:
                 agent_preferences = self.preferences_by_agent_by_category[category_pk].get(agent_pk, (0, 1., 0.))
                 if category.balancing_mode == category.BALANCE_NUMBER:
-                    ag_sum = ['%g * %s' % (agent_preferences[1], self.variable(agent_pk, event_pk))
-                              for event_pk in cat_event_pks]
+                    ag_sum = ['%g * %s' % (agent_preferences[1], self.variable(agent_pk, task_pk))
+                              for task_pk in cat_task_pks]
                 else:
-                    ag_sum = ['%g * %d * %s' % (agent_preferences[1], self.event_durations[event_pk],
-                                                self.variable(agent_pk, event_pk)) for event_pk in cat_event_pks]
+                    ag_sum = ['%g * %d * %s' % (agent_preferences[1], self.task_durations[task_pk],
+                                                self.variable(agent_pk, task_pk)) for task_pk in cat_task_pks]
                 yield Constraint('%g + %s = %s' % (agent_preferences[0], ' + '.join(ag_sum),
                                                    self.category_variable(category_pk, agent_pk)))
             ag_sum = [self.category_variable(category_pk, agent_pk) for agent_pk in cat_agent_pks]
@@ -191,14 +197,14 @@ class Scheduler(object):
         variables = []
         for category in self.categories:
             category_pk = category.pk
-            cat_event_pks = [(event.pk, event.start_time_slice, event.end_time_slice) for event in self.events
-                             if category_pk in self.parent_categories_by_category[event.category_id]]
+            cat_task_pks = [(task.pk, task.start_time_slice, task.end_time_slice) for task in self.tasks
+                             if category_pk in self.parent_categories_by_category[task.category_id]]
             # if category.auto_affinity:
-            # cat_event_pks.sort(key=lambda x: x[1])
+            # cat_task_pks.sort(key=lambda x: x[1])
             for agent_pk in self.agent_pks - self.agent_exclusions_by_category[category_pk]:
                 agent_preferences = self.preferences_by_agent_by_category[category_pk].get(agent_pk, (0, 1., 0.))
                 variables += ['%g * %s' % (agent_preferences[2], self.variable(agent_pk, x[0]))
-                              for x in cat_event_pks if agent_preferences[2]]
+                              for x in cat_task_pks if agent_preferences[2]]
         if variables:
             yield Constraint('min: -%s' % self.affinity_variable())
             yield Constraint('%s = %s' % (' + '.join(variables), self.affinity_variable()))
@@ -207,27 +213,27 @@ class Scheduler(object):
 
     def constraints(self):
         yield from self.apply_affinity_constraints()
-        # all events must be done
-        yield from self.apply_all_events_must_be_done()
-        # event with a fixed agent
-        yield from self.apply_fixed_events()
-        # at most one event by agent at the same time
-        yield from self.apply_single_event_per_agent()
+        # all tasks must be done
+        yield from self.apply_all_tasks_must_be_done()
+        # task with a fixed agent
+        yield from self.apply_fixed_tasks()
+        # at most one task by agent at the same time
+        yield from self.apply_single_task_per_agent()
         for category in self.categories:
-            if self.max_event_affectations_by_category[category.pk]:
-                yield from self.apply_max_event_affectations(category.pk)
+            if self.max_task_affectations_by_category[category.pk]:
+                yield from self.apply_max_task_affectations(category.pk)
         yield from self.apply_balancing_constraints()
-        for event_pk, agent_pks in self.available_agents_by_events.items():
+        for task_pk, agent_pks in self.available_agents_by_tasks.items():
             for agent_pk in agent_pks:
-                yield Constraint('%s >= 0' % self.variable(agent_pk, event_pk))
-                yield Constraint('%s <= 1' % self.variable(agent_pk, event_pk))
-        for event_pk, agent_pks in self.available_agents_by_events.items():
+                yield Constraint('%s >= 0' % self.variable(agent_pk, task_pk))
+                yield Constraint('%s <= 1' % self.variable(agent_pk, task_pk))
+        for task_pk, agent_pks in self.available_agents_by_tasks.items():
             for agent_pk in agent_pks:
-                yield Constraint('int %s' % self.variable(agent_pk, event_pk))
+                yield Constraint('int %s' % self.variable(agent_pk, task_pk))
 
     @staticmethod
-    def variable(agent_pk, event_pk):
-        return 'v_a%s_e%s' % (agent_pk, event_pk)
+    def variable(agent_pk, task_pk):
+        return 'v_a%s_e%s' % (agent_pk, task_pk)
 
     result_line_re = '^v_a(\d+)_e(\d+)\s+1$'
 
@@ -242,7 +248,7 @@ class Scheduler(object):
         return 'a'
 
     def solve(self, verbose=False):
-        """ Return a schedule (if such one exists) as a list of (agent_pk, event_pk)
+        """ Return a schedule (if such one exists) as a list of (agent_pk, task_pk)
         :param verbose:
         :type verbose:
         :return:
@@ -272,6 +278,6 @@ class Scheduler(object):
     @staticmethod
     def result_by_agent(result_list):
         result_dict = {}
-        for agent_pk, event_pk in result_list:
-            result_dict.setdefault(agent_pk, set()).add(event_pk)
+        for agent_pk, task_pk in result_list:
+            result_dict.setdefault(agent_pk, set()).add(task_pk)
         return result_dict

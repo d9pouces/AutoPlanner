@@ -22,17 +22,18 @@ def metro_icon(name, large=False, color=None, animation=None):
     else:
         large = ''
     if color in metro_colors:
-        color_cls = 'fg-' + color
+        color_cls = ' fg-' + color
         color = ''
     else:
         color_cls = ''
-    if animation:
-        assert animation in ('spin', 'pulse', 'spanner', 'bell', 'vertical', 'horizontal', 'flash', 'bounce', 'float',
-                             'heartbeat', 'shake', 'shuttle', 'pass', 'ripple')
-    return mark_safe('<span class="mif-icon_{name}{large}{ani}{color_cls}"{color}></span>'.format(
+    print(animation)
+    # if animation:
+    #     assert animation in ('spin', 'pulse', 'spanner', 'bell', 'vertical', 'horizontal', 'flash', 'bounce', 'float',
+    #                          'heartbeat', 'shake', 'shuttle', 'pass', 'ripple')
+    return mark_safe('<span class="mif-{name}{large}{ani}{color_cls}"{color}></span>'.format(
         name=name,
         large=large,
-        ani='mif-ani-%s' % animation if animation else '',
+        ani=' mif-ani-%s' % animation if animation else '',
         color_cls=color_cls,
         color='style="color:%s;"' % color if color else ''
     ))

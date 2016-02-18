@@ -43,10 +43,10 @@ PIPELINE_CSS = {
     'metango': {
         'source_filenames': [
             'css/metro.min.css',
+            'css/metro-icons.min.css',
             'css/metro-responsive.min.css',
             'css/metro-schemes.min.css',
             'css/metro-rtl.min.css',
-            'css/metro-icons.min.css',
             'css/jquery.dataTables.min.css',
             'css/select2.min.css',
         ],
@@ -69,6 +69,7 @@ PIPELINE_JS = {
             'js/metro.min.js',
             'js/jquery.dataTables.min.js',
             'js/select2.full.min.js',
+            'js/djangofloor.js',
             'js/ws4redis.js',
         ],
         'output_filename': 'js/metango.js',
