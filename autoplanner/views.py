@@ -83,7 +83,7 @@ def multiply_task(request, task_pk):
             elif to_create:
                 messages.info(request, _('A task has been created.'))
             new_url = reverse('admin:%s_%s_change' % (opts.app_label, opts.model_name),
-                    args=(quote(task_pk), ), current_app=model_admin.admin_site.name)
+                              args=(quote(obj.organization_id), ), current_app=model_admin.admin_site.name)
             return HttpResponseRedirect(new_url)
     else:
         form = MultiplyTaskForm(initial={'source_task': obj})
