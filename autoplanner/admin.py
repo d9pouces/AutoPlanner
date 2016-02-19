@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from django.contrib import admin
 from django.contrib.sites.models import Site
+from django.core.urlresolvers import reverse
+from django.utils.html import format_html
 from django.utils.translation import ugettext_lazy as _
 
 from autoplanner.models import Task, AgentCategoryPreferences, AgentTaskExclusion, MaxTaskAffectation, Category, \
@@ -25,6 +27,19 @@ class CategoryInline(admin.TabularInline):
 
 class TaskInline(admin.TabularInline):
     model = Task
+
+    @staticmethod
+    def repeat_button(obj):
+        if obj and obj.pk:
+            return format_html('<a href="{}" class="button default">{}</a>',
+                               reverse('multiply_task', kwargs={'task_pk': obj.pk}),
+                               _('Repeat'))
+        return ''
+
+    repeat_button.allow_tags = True
+    repeat_button.verbose_name = _('Repeat')
+    readonly_fields = ('repeat_button', )
+    fields = ('category', 'name', 'start_time_slice', 'end_time_slice', 'agent', 'fixed', 'repeat_button')
 
 
 class MaxTaskAffectationInline(admin.TabularInline):
@@ -61,9 +76,22 @@ class AgentAdmin(admin.ModelAdmin):
 
 class TaskAdmin(admin.ModelAdmin):
 
+    @staticmethod
+    def repeat_button(obj):
+        if obj and obj.pk:
+            return format_html('<a href="{}" class="button default">{}</a>',
+                               reverse('multiply_task', kwargs={'task_pk': obj.pk}),
+                               _('Repeat'))
+        return ''
+
+    repeat_button.allow_tags = True
+    readonly_fields = ('repeat_button', )
+    repeat_button.short_description = _('Repeat')
+
     fields = ['category', 'name', 'start_time_slice', 'end_time_slice', 'agent', 'fixed',]
-    list_display = [str, 'category', 'start_time_slice', 'end_time_slice', 'agent', 'fixed']
+    list_display = [str, 'category', 'start_time_slice', 'end_time_slice', 'agent', 'fixed', 'repeat_button', ]
     list_editable = ['category', 'start_time_slice', 'end_time_slice', 'agent', 'fixed']
+    list_filter = ['category', 'agent', 'organization', 'fixed', ]
 
 
 admin.site.register(Organization, OrganizationAdmin)
