@@ -32,8 +32,8 @@
                 {% endblocktrans %}</p>
         <table>
             <tr><th>{% trans 'Category:' %}</th><td>{{ obj.category }}</td></tr>
-            <tr><th>{% trans 'Start time:' %}</th><td>{{ obj.start_time_slice }}</td></tr>
-            <tr><th>{% trans 'End time:' %}</th><td>{{ obj.end_time_slice }}</td></tr>
+            <tr><th>{% trans 'Start time:' %}</th><td>{{ obj.start_time }}</td></tr>
+            <tr><th>{% trans 'End time:' %}</th><td>{{ obj.end_time }}</td></tr>
         </table>
             {% csrf_token %}{% block form_top %}{% endblock %}
             <div>

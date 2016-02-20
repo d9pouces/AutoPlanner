@@ -28,7 +28,7 @@ class Scheduler(object):
         self.tasks = {x for x in organization.task_set.all()}
         self.agent_category_preferences = {x for x in organization.agentcategorypreferences_set.all()}
 
-        self.task_durations = {task.pk: (task.end_time_slice - task.start_time_slice).total_seconds()
+        self.task_durations = {task.pk: (task.end_time - task.start_time).total_seconds()
                                 for task in self.tasks}
         self.agent_pks = {x.pk for x in self.agents}
         # self.agent_pks = {agent1.pk, agent2.pk, agent3.pk}
@@ -71,9 +71,9 @@ class Scheduler(object):
                     agent_task_exclusions[task_pk].add(agent_pk)
             for agent in self.agents:
                 # TODO optimize
-                if agent.start_time_slice is not None and agent.start_time_slice > task.start_time_slice:
+                if agent.start_time is not None and agent.start_time > task.start_time:
                     agent_task_exclusions[task_pk].add(agent.pk)
-                elif agent.end_time_slice is not None and agent.end_time_slice < task.end_time_slice:
+                elif agent.end_time is not None and agent.end_time < task.end_time:
                     agent_task_exclusions[task_pk].add(agent.pk)
         for agent_task_exclusion in self.organization.agenttaskexclusion_set.all():
             agent_task_exclusions[agent_task_exclusion.task_pk].add(agent_task_exclusion.agent_id)
@@ -102,21 +102,21 @@ class Scheduler(object):
         """ "Agent A cannot execute more than X tasks of category C in less than T time slices"
         :param category_pk:
         """
-        task_data = [(task.pk, task.start_time_slice, task.end_time_slice) for task in self.tasks
+        task_data = [(task.pk, task.start_time, task.end_time) for task in self.tasks
                       if category_pk in self.parent_categories_by_category[task.category_id]]
         task_data.sort(key=lambda x: (x[1], x[2]))
         agent_pks = self.agent_pks - self.agent_exclusions_by_category[category_pk]
-        previous_start_time_slice = None
+        previous_start_time = None
         for index, data in enumerate(task_data):
-            task_pk, start_time_slice, __ = data
-            if start_time_slice == previous_start_time_slice:
+            task_pk, start_time, __ = data
+            if start_time == previous_start_time:
                 continue
             current_tasks = {task_pk}
             for max_affectation in self.max_task_affectations_by_category[category_pk]:
-                end_block_time_slice = start_time_slice + max_affectation.range_time_slice
+                end_block_time_slice = start_time + max_affectation.range_time_slice
                 for data_2 in task_data[index + 1:]:
-                    task_pk_2, start_time_slice_2, __ = data_2
-                    if start_time_slice_2 >= end_block_time_slice:
+                    task_pk_2, start_time_2, __ = data_2
+                    if start_time_2 >= end_block_time_slice:
                         break
                     current_tasks.add(task_pk_2)
                 direction = '<=' if max_affectation.mode == max_affectation.MAXIMUM else '>='
@@ -131,7 +131,7 @@ class Scheduler(object):
                         variables = [self.variable(agent_pk, task_pk) for task_pk in current_tasks]
                         yield Constraint('%s %s %d' % (' + '.join(variables), direction,
                                                        max_affectation.task_maximum_count))
-            previous_start_time_slice = start_time_slice
+            previous_start_time = start_time
 
     def apply_all_tasks_must_be_done(self):
         """ "Exactly one agent must perform each task"
@@ -150,8 +150,8 @@ class Scheduler(object):
         current_tasks = set()
         resumed_tasks = {}
         for task in self.tasks:
-            resumed_tasks.setdefault(task.start_time_slice, []).append((task.pk, current_tasks.add))
-            resumed_tasks.setdefault(task.end_time_slice, []).append((task.pk, current_tasks.remove))
+            resumed_tasks.setdefault(task.start_time, []).append((task.pk, current_tasks.add))
+            resumed_tasks.setdefault(task.end_time, []).append((task.pk, current_tasks.remove))
         time_slices = [x for x in resumed_tasks]
         time_slices.sort()
         for time_slice in time_slices:
@@ -165,7 +165,7 @@ class Scheduler(object):
 
     def apply_balancing_constraints(self):
         for category in self.categories:
-            if category.balancing_mode is None:
+            if category.balancing_mode is None or category.balancing_tolerance is None:
                 continue
             category_pk = category.pk
             cat_task_pks = [task.pk for task in self.tasks
@@ -197,7 +197,7 @@ class Scheduler(object):
         variables = []
         for category in self.categories:
             category_pk = category.pk
-            cat_task_pks = [(task.pk, task.start_time_slice, task.end_time_slice) for task in self.tasks
+            cat_task_pks = [(task.pk, task.start_time, task.end_time) for task in self.tasks
                              if category_pk in self.parent_categories_by_category[task.category_id]]
             # if category.auto_affinity:
             # cat_task_pks.sort(key=lambda x: x[1])
@@ -266,18 +266,25 @@ class Scheduler(object):
         if verbose:
             print(std_out.decode())
             print(std_err.decode())
-        result_values = []
+        result_list = []
         std_out = std_out.decode()
         value_re = re.compile(self.result_line_re)
         for line in std_out.splitlines():
             matcher = value_re.match(line)
             if matcher:
-                result_values.append((int(matcher.group(1)), int(matcher.group(2))))
-        return result_values
+                result_list.append((int(matcher.group(1)), int(matcher.group(2))))
+        return result_list
 
     @staticmethod
     def result_by_agent(result_list):
         result_dict = {}
         for agent_pk, task_pk in result_list:
             result_dict.setdefault(agent_pk, set()).add(task_pk)
+        return result_dict
+
+    @staticmethod
+    def result_by_task(result_list):
+        result_dict = {}
+        for agent_pk, task_pk in result_list:
+            result_dict.setdefault(task_pk, set()).add(agent_pk)
         return result_dict

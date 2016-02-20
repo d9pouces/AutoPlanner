@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.contrib import admin
 from django.contrib.sites.models import Site
+from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.utils.html import format_html
 from django.utils.translation import ugettext_lazy as _
@@ -20,9 +21,16 @@ class CategoryInline(admin.TabularInline):
     model = Category
 
     def get_extra(self, request, obj=None, **kwargs):
-        if obj.category_set.all().count() > 3:
+        if request.GET.get('readonly'):
+            return 0
+        elif obj.category_set.all().count() > 3:
             return 1
         return 3
+
+    def get_readonly_fields(self, request, obj=None):
+        if request.GET.get('readonly'):
+            return ['parent_category', 'name', 'balancing_mode', 'balancing_tolerance', 'auto_affinity']
+        return []
 
 
 class TaskInline(admin.TabularInline):
@@ -39,7 +47,17 @@ class TaskInline(admin.TabularInline):
     repeat_button.allow_tags = True
     repeat_button.verbose_name = _('Repeat')
     readonly_fields = ('repeat_button', )
-    fields = ('category', 'name', 'start_time_slice', 'end_time_slice', 'agent', 'fixed', 'repeat_button')
+    fields = ('category', 'name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button')
+
+    def get_readonly_fields(self, request, obj=None):
+        if request.GET.get('readonly'):
+            return ['category', 'name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button', ]
+        return ['repeat_button', ]
+
+    def get_extra(self, request, obj=None, **kwargs):
+        if request.GET.get('readonly'):
+            return 0
+        return 3
 
 
 class MaxTaskAffectationInline(admin.TabularInline):
@@ -51,6 +69,13 @@ class MaxTimeTaskAffectationInline(admin.TabularInline):
 
 
 class OrganizationAdmin(admin.ModelAdmin):
+    exclude = ['message']
+
+    def get_fields(self, request, obj=None):
+        if obj and obj.message:
+            messages.info(request, obj.message)
+        return super().get_fields(request, obj=obj)
+
     inlines = [AgentInline, CategoryInline, TaskInline, MaxTaskAffectationInline, MaxTimeTaskAffectationInline]
 
 
@@ -68,7 +93,7 @@ class AgentAdmin(admin.ModelAdmin):
     inlines = [AgentCategoryPreferencesInline, AgentTaskExclusionInline]
 
     def get_fields(self, request, obj=None):
-        fields = ['name', 'start_time_slice', 'end_time_slice']
+        fields = ['name', 'start_time', 'end_time']
         if obj is None:
             fields = ['organization'] + fields
         return fields
@@ -88,9 +113,9 @@ class TaskAdmin(admin.ModelAdmin):
     readonly_fields = ('repeat_button', )
     repeat_button.short_description = _('Repeat')
 
-    fields = ['category', 'name', 'start_time_slice', 'end_time_slice', 'agent', 'fixed',]
-    list_display = [str, 'category', 'start_time_slice', 'end_time_slice', 'agent', 'fixed', 'repeat_button', ]
-    list_editable = ['category', 'start_time_slice', 'end_time_slice', 'agent', 'fixed']
+    fields = ['category', 'name', 'start_time', 'end_time', 'agent', 'fixed',]
+    list_display = ['name', 'category', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button', ]
+    list_editable = ['category', 'start_time', 'end_time', 'agent', 'fixed']
     list_filter = ['category', 'agent', 'organization', 'fixed', ]
 
 

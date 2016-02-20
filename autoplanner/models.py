@@ -2,6 +2,7 @@
 import datetime
 
 from django.http import HttpRequest
+from django.utils.formats import date_format
 from django.utils.timezone import LocalTimezone
 from django.utils.translation import ugettext_lazy as _
 from django.db import models
@@ -22,7 +23,12 @@ def default_day_end():
 
 class Organization(models.Model):
     name = models.CharField(_('Name'), db_index=True, max_length=500)
+    message = models.CharField(_('Message'), blank=True, max_length=500, default='')
     description = models.TextField(_('Description'), default='', blank=True)
+    celery_task_id = models.CharField(_('Celery task id'), db_index=True, max_length=20, blank=True, null=True,
+                                      default=None)
+    celery_start = models.DateTimeField(_('Celery start'), null=True, blank=True, default=None)
+    celery_end = models.DateTimeField(_('Celery end'), null=True, blank=True, default=None)
 
     # noinspection PyUnusedLocal
     @classmethod
@@ -36,11 +42,14 @@ class Organization(models.Model):
 class Agent(models.Model):
     organization = models.ForeignKey(Organization, db_index=True)
     name = models.CharField(_('Name'), db_index=True, max_length=500)
-    start_time_slice = models.DateTimeField(_('Arrival time'), db_index=True, default=None, blank=True, null=True,
+    start_time = models.DateTimeField(_('Arrival time'), db_index=True, default=None, blank=True, null=True,
                                             help_text=_('Before this date, the agent cannot perform'
                                                         'any task.'))
-    end_time_slice = models.DateTimeField(_('Leaving time'), db_index=True, default=None, blank=True, null=True,
+    end_time = models.DateTimeField(_('Leaving time'), db_index=True, default=None, blank=True, null=True,
                                           help_text=_('After this date, the agent cannot perform any task.'))
+
+    class Meta(object):
+        ordering = ('name', )
 
     def __str__(self):
         return self.name
@@ -133,10 +142,10 @@ class Task(models.Model):
     organization = models.ForeignKey(Organization, db_index=True)
     category = models.ForeignKey(Category, db_index=True)
     name = models.CharField(_('Name'), db_index=True, max_length=500)
-    start_time_slice = models.DateTimeField(_('Start time'), db_index=True, default=default_day_start)
-    end_time_slice = models.DateTimeField(_('End time'), db_index=True, default=default_day_end)
+    start_time = models.DateTimeField(_('Start time'), db_index=True, default=default_day_start)
+    end_time = models.DateTimeField(_('End time'), db_index=True, default=default_day_end)
     agent = models.ForeignKey(Agent, db_index=True, null=True, default=None, blank=True)
-    fixed = models.BooleanField(_('Agent cannot be changed'), db_index=True, default=False)
+    fixed = models.BooleanField(_('Forced agent'), db_index=True, default=False)
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
@@ -145,12 +154,17 @@ class Task(models.Model):
         super().save(force_insert=force_insert, force_update=force_update, using=using,
                      update_fields=update_fields)
 
+    class Meta(object):
+        ordering = ('start_time', 'end_time', )
+
     @property
     def duration(self) -> datetime.timedelta:
-        return self.end_time_slice - self.start_time_slice
+        return self.end_time - self.start_time
 
     def __str__(self):
-        return self.name
+        start = date_format(self.start_time, use_l10n=True)
+        end = date_format(self.end_time, use_l10n=True)
+        return '%s (%s -> %s)' % (self.name, start, end)
 
 
 class AgentCategoryPreferences(models.Model):

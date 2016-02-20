@@ -19,8 +19,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(db_index=True, max_length=500, verbose_name='Nom')),
-                ('start_time_slice', models.DateTimeField(blank=True, db_index=True, default=None, help_text='Before this date, the agent cannot performany task.', null=True, verbose_name='Arrival time')),
-                ('end_time_slice', models.DateTimeField(blank=True, db_index=True, default=None, help_text='After this date, the agent cannot perform any task.', null=True, verbose_name='Leaving time')),
+                ('start_time', models.DateTimeField(blank=True, db_index=True, default=None, help_text='Before this date, the agent cannot performany task.', null=True, verbose_name='Arrival time')),
+                ('end_time', models.DateTimeField(blank=True, db_index=True, default=None, help_text='After this date, the agent cannot perform any task.', null=True, verbose_name='Leaving time')),
             ],
         ),
         migrations.CreateModel(
@@ -101,8 +101,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(db_index=True, max_length=500, verbose_name='Nom')),
-                ('start_time_slice', models.DateTimeField(db_index=True, verbose_name='Start time')),
-                ('end_time_slice', models.DateTimeField(db_index=True, verbose_name='End time')),
+                ('start_time', models.DateTimeField(db_index=True, verbose_name='Start time')),
+                ('end_time', models.DateTimeField(db_index=True, verbose_name='End time')),
                 ('fixed', models.BooleanField(db_index=True, default=False, verbose_name='Agent is strongly fixed')),
                 ('agent', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.CASCADE, to='autoplanner.Agent')),
                 ('category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='autoplanner.Category')),

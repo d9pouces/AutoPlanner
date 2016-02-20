@@ -13,11 +13,12 @@ from django.http.response import HttpResponseRedirect
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.utils.translation import ugettext_lazy as _
+from djangofloor.celery import app
 
 from autoplanner.admin import OrganizationAdmin
 from autoplanner.forms import MultiplyTaskForm
 from autoplanner.models import Organization, Task
-
+from autoplanner.tasks import compute_schedule
 
 __author__ = 'Matthieu Gallet'
 
@@ -32,7 +33,7 @@ def index(request):
 def organization(request, organization_pk):
     org = get_object_or_404(Organization.query(request), pk=organization_pk)
     assert isinstance(org, Organization)
-    tasks = org.task_set.all().order_by('start_time_slice')
+    tasks = org.task_set.all().order_by('start_time')
     categories = org.category_set.all().order_by('name')
     template_values = {
         'organization': org,
@@ -56,11 +57,11 @@ def multiply_task(request, task_pk):
             every_src = form.cleaned_data['every']
             assert isinstance(until_src, datetime.datetime)
             limit = datetime.datetime(year=until_src.year, month=until_src.month, day=until_src.day,
-                                      hour=23, minute=59, second=59, tzinfo=obj.start_time_slice.tzinfo)
+                                      hour=23, minute=59, second=59, tzinfo=obj.start_time.tzinfo)
             to_create = []
             increment = datetime.timedelta(days=every_src)
-            start_time_slice = obj.start_time_slice + increment
-            end_time_slice = obj.end_time_slice + increment
+            start_time = obj.start_time + increment
+            end_time = obj.end_time + increment
             matcher = re.match(r'^(.*)\s+\((\d+)\)', obj.name)
             if matcher:
                 new_name = matcher.group(1)
@@ -68,13 +69,13 @@ def multiply_task(request, task_pk):
             else:
                 new_name = obj.name
                 name_index = 2
-            while start_time_slice < limit:
+            while start_time < limit:
                 new_task = Task(organization_id=obj.organization_id, category_id=obj.category_id,
                                 name='%s (%d)' % (new_name, name_index),
-                                start_time_slice=start_time_slice, end_time_slice=end_time_slice)
+                                start_time=start_time, end_time=end_time)
                 to_create.append(new_task)
-                start_time_slice += increment
-                end_time_slice += increment
+                start_time += increment
+                end_time += increment
                 name_index += 1
             if to_create:
                 Task.objects.bulk_create(to_create)
@@ -117,3 +118,38 @@ def multiply_task(request, task_pk):
     })
 
     return render_to_response('autoplanner/multiply_task.html', template_values, RequestContext(request))
+
+
+def schedule_task(request, organization_pk):
+    obj = get_object_or_404(Organization, pk=organization_pk)
+    # noinspection PyProtectedMember
+    model_admin = admin.site._registry[Organization]
+    assert isinstance(model_admin, OrganizationAdmin)
+    # noinspection PyProtectedMember
+    opts = model_admin.model._meta
+    count = Organization.objects.filter(pk=organization_pk, celery_task_id=None)
+    if count == 0:
+        messages.error(request, _('%(obj)s is already busy.') % {'obj': obj})
+    else:
+        compute_schedule.delay(obj.pk)
+        messages.info(request, _('Computation launched.') % {'obj': obj})
+    new_url = reverse('admin:%s_%s_change' % (opts.app_label, opts.model_name),
+                      args=(quote(obj.pk), ), current_app=model_admin.admin_site.name)
+    return HttpResponseRedirect(new_url)
+
+
+def cancel_schedule_task(request, organization_pk):
+    obj = get_object_or_404(Organization, pk=organization_pk)
+    # noinspection PyProtectedMember
+    model_admin = admin.site._registry[Organization]
+    assert isinstance(model_admin, OrganizationAdmin)
+    # noinspection PyProtectedMember
+    opts = model_admin.model._meta
+    if obj.celery_task_id is None:
+        messages.error(request, _('No computation is running on %(obj)s.') % {'obj': obj})
+    else:
+        app.control.revoke(obj.celery_task_id)
+        messages.info(request, _('Computation has been interrupted.') % {'obj': obj})
+    new_url = reverse('admin:%s_%s_change' % (opts.app_label, opts.model_name),
+                      args=(quote(obj.pk), ), current_app=model_admin.admin_site.name)
+    return HttpResponseRedirect(new_url)
