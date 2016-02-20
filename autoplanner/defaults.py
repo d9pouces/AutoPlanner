@@ -28,7 +28,7 @@ FLOOR_PROJECT_NAME = 'AutoPlanner'
 SECRET_KEY = '8FOOc2ETUHpRYqYvcZ6cvmXD2sz1W88JQjUQFpvHH0KeWRioyU'
 LP_SOLVE_PATH = 'lp_solve'
 
-DEBUG = True
+DEBUG = False
 
 PIPELINE_CSS = {
     'default': {

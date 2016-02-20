@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.contrib.sites.models import Site
 from django.contrib import messages
 from django.core.urlresolvers import reverse
+from django.shortcuts import get_object_or_404
 from django.utils.html import format_html
 from django.utils.translation import ugettext_lazy as _
 
@@ -15,6 +16,7 @@ __author__ = 'Matthieu Gallet'
 
 class AgentInline(admin.TabularInline):
     model = Agent
+    show_change_link = True
 
 
 class CategoryInline(admin.TabularInline):
@@ -23,7 +25,7 @@ class CategoryInline(admin.TabularInline):
     def get_extra(self, request, obj=None, **kwargs):
         if request.GET.get('readonly'):
             return 0
-        elif obj.category_set.all().count() > 3:
+        elif obj and obj.category_set.all().count() > 3:
             return 1
         return 3
 
@@ -69,13 +71,31 @@ class MaxTimeTaskAffectationInline(admin.TabularInline):
 
 
 class OrganizationAdmin(admin.ModelAdmin):
-    exclude = ['message']
+    exclude = ['message', 'celery_task_id', 'celery_start', 'celery_end']
 
-    def get_fields(self, request, obj=None):
-        if obj and obj.message:
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        obj = get_object_or_404(Organization, pk=object_id)
+        if obj.message:
             messages.info(request, obj.message)
-        return super().get_fields(request, obj=obj)
+        return super().change_view(request, object_id, form_url=form_url, extra_context=extra_context)
 
+    # noinspection PyMethodMayBeStatic
+    def schedule_button(self, obj):
+        if obj and obj.pk:
+            if not obj.celery_task_id:
+                return format_html('<a href="{}" class="button default">{}</a>',
+                                   reverse('schedule_start', kwargs={'organization_pk': obj.pk}),
+                                   _('Schedule it!'))
+            else:
+                return format_html('<a href="{}" class="button default">{}</a>',
+                                   reverse('cancel_schedule', kwargs={'organization_pk': obj.pk}),
+                                   _('Cancel the schedule'))
+        return ''
+
+    schedule_button.allow_tags = True
+    schedule_button.short_description = _('Compute a complete schedule')
+    readonly_fields = ('schedule_button', )
+    fields = ['name', 'description', 'schedule_button', ]
     inlines = [AgentInline, CategoryInline, TaskInline, MaxTaskAffectationInline, MaxTimeTaskAffectationInline]
 
 
@@ -101,8 +121,8 @@ class AgentAdmin(admin.ModelAdmin):
 
 class TaskAdmin(admin.ModelAdmin):
 
-    @staticmethod
-    def repeat_button(obj):
+    # noinspection PyMethodMayBeStatic
+    def repeat_button(self, obj):
         if obj and obj.pk:
             return format_html('<a href="{}" class="button default">{}</a>',
                                reverse('multiply_task', kwargs={'task_pk': obj.pk}),
