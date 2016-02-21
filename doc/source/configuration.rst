@@ -16,6 +16,47 @@ Here is the complete list of settings:
 
 .. code-block:: ini
 
+  [database]
+  engine = django.db.backends.postgresql_psycopg2
+  # SQL database engine, can be 'django.db.backends.[postgresql_psycopg2|mysql|sqlite3|oracle]'.
+  host = localhost
+  # Empty for localhost through domain sockets or "127.0.0.1" for localhost + TCP
+  name = autoplanner
+  # Name of your database, or path to database file if using sqlite3.
+  password = 5trongp4ssw0rd
+  # Database password (not used with sqlite3)
+  port = 5432
+  # Database port, leave it empty for default (not used with sqlite3)
+  user = autoplanner
+  # Database user (not used with sqlite3)
+  [global]
+  admin_email = admin@autoplanner.example.org
+  # error logs are sent to this e-mail address
+  bind_address = 127.0.0.1:9000
+  # The socket (IP address:port) to bind to.
+  data_path = /var/autoplanner
+  # Base path for all data
+  debug = False
+  # A boolean that turns on/off debug mode.
+  default_group = Users
+  # Name of the default group for newly-created users.
+  extra_apps = 
+  # List of extra installed Django apps (separated by commas).
+  language_code = fr-fr
+  # A string representing the language code for this installation.
+  protocol = http
+  # Protocol (or scheme) used by your webserver (apache/nginx/…, can be http or https)
+  remote_user_header = HTTP_REMOTE_USER
+  # HTTP header corresponding to the username when using HTTP authentication.Should be "HTTP_REMOTE_USER". Leave it empty to disable HTTP authentication.
+  secret_key = 8FOOc2ETUHpRYqYvcZ6cvmXD2sz1W88JQjUQFpvHH0KeWRioyU
+  # A secret key for a particular Django installation. This is used to provide cryptographic signing, and should be set to a unique, unpredictable value.
+  server_name = autoplanner.example.org
+  # the name of your webserver (should be a DNS name, but can be an IP address)
+  time_zone = Europe/Paris
+  # A string representing the time zone for this installation, or None. 
+  [sentry]
+  dsn_url = 
+  # Sentry URL to send data to. https://docs.getsentry.com/
 
 
 
@@ -77,7 +118,7 @@ We use logrotate to backup the database, with a new file each day.
   EOF
   touch /var/backups/autoplanner/backup_db.sql.gz
   crontab -e
-  MAILTO=admin@localhost
+  MAILTO=admin@autoplanner.example.org
   0 1 * * * /home/autoplanner/.virtualenvs/autoplanner/bin/autoplanner-manage clearsessions
   0 2 * * * logrotate -f /home/autoplanner/.virtualenvs/autoplanner/etc/autoplanner/backup_db.conf
 
@@ -103,8 +144,8 @@ If you have a lot of files to backup, beware of the available disk place!
   EOF
   touch /var/backups/autoplanner/backup_media.tar.gz
   crontab -e
-  MAILTO=admin@localhost
-  0 3 * * * rsync -arltDE /Users/flanker/.virtualenvs/autoplanner/var/autoplanner/data/media/ /var/backups/autoplanner/media/
+  MAILTO=admin@autoplanner.example.org
+  0 3 * * * rsync -arltDE /var/autoplanner/data/media/ /var/backups/autoplanner/media/
   0 5 0 * * logrotate -f /home/autoplanner/.virtualenvs/autoplanner/etc/autoplanner/backup_media.conf
 
 Restoring a backup
@@ -113,7 +154,7 @@ Restoring a backup
 .. code-block:: bash
 
   cat /var/backups/autoplanner/backup_db.sql.gz | gunzip | /home/autoplanner/.virtualenvs/autoplanner/bin/autoplanner-manage dbshell
-  tar -C /Users/flanker/.virtualenvs/autoplanner/var/autoplanner/data/media/ -xf /var/backups/autoplanner/backup_media.tar.gz
+  tar -C /var/autoplanner/data/media/ -xf /var/backups/autoplanner/backup_media.tar.gz
 
 
 
@@ -143,7 +184,8 @@ Here is a sample NRPE configuration file:
   cat << EOF | sudo tee /etc/nagios/nrpe.d/autoplanner.cfg
   command[autoplanner_wsgi]=/usr/lib/nagios/plugins/check_http -H 127.0.0.1 -p 9000
   command[autoplanner_redis]=/usr/lib/nagios/plugins/check_tcp -H localhost -p 6379
-  command[autoplanner_reverse_proxy]=/usr/lib/nagios/plugins/check_http -H localhost -p 80 -e 401
+  command[autoplanner_database]=/usr/lib/nagios/plugins/check_tcp -H localhost -p 5432
+  command[autoplanner_reverse_proxy]=/usr/lib/nagios/plugins/check_http -H autoplanner.example.org -p 80 -e 401
   command[autoplanner_backup_db]=/usr/lib/nagios/plugins/check_file_age -w 172800 -c 432000 /var/backups/autoplanner/backup_db.sql.gz
   command[autoplanner_backup_media]=/usr/lib/nagios/plugins/check_file_age -w 3024000 -c 6048000 /var/backups/autoplanner/backup_media.sql.gz
   command[autoplanner_gunicorn]=/usr/lib/nagios/plugins/check_procs -C python -a '/home/autoplanner/.virtualenvs/autoplanner/bin/autoplanner-gunicorn'

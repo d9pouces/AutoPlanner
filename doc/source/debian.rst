@@ -4,12 +4,9 @@ Debian Installation
 By default, AutoPlanner is only packaged as a standard Python project, downloadable from `Pypi <https://pypi.python.org>`_.
 However, you can create pure Debian packages with `DjangoFloor <http://django-floor.readthedocs.org/en/latest/packaging.html#debian-ubuntu>`_.
 
-The source code provides several Bash scripts:
+The source code provides one Bash scripts,  `deb-debian-8_ubuntu-14.10-150.10.sh`.
 
-    * `deb-debian-8-python3.sh`,
-    * `deb-ubuntu-14.04-15.10.sh`.
-
-These scripts are designed to run on basic installation and are split in five steps:
+This script is designed to run on basic installation and are split in five steps:
 
     * update system and install missing packages,
     * create a virtualenv and install all dependencies,
@@ -60,8 +57,8 @@ If you want AutoPlanner to be started at startup, you have to enable it in syste
 
 .. code-block:: bash
 
-    systemctl enable moneta-gunicorn.service
-    systemctl enable moneta-celery.service
+    systemctl enable autoplanner-gunicorn.service
+    systemctl enable autoplanner-celery.service
 
 
 
@@ -100,7 +97,7 @@ We use logrotate to backup the database, with a new file each day.
   EOF
   touch /var/backups/autoplanner/backup_db.sql.gz
   crontab -e
-  MAILTO=admin@localhost
+  MAILTO=admin@autoplanner.example.org
   0 1 * * * /usr/local/bin/autoplanner-manage clearsessions
   0 2 * * * logrotate -f /etc/autoplanner/backup_db.conf
 
@@ -126,8 +123,8 @@ If you have a lot of files to backup, beware of the available disk place!
   EOF
   touch /var/backups/autoplanner/backup_media.tar.gz
   crontab -e
-  MAILTO=admin@localhost
-  0 3 * * * rsync -arltDE /Users/flanker/.virtualenvs/autoplanner/var/autoplanner/data/media/ /var/backups/autoplanner/media/
+  MAILTO=admin@autoplanner.example.org
+  0 3 * * * rsync -arltDE /var/autoplanner/data/media/ /var/backups/autoplanner/media/
   0 5 0 * * logrotate -f /etc/autoplanner/backup_media.conf
 
 Restoring a backup
@@ -136,7 +133,7 @@ Restoring a backup
 .. code-block:: bash
 
   cat /var/backups/autoplanner/backup_db.sql.gz | gunzip | /usr/local/bin/autoplanner-manage dbshell
-  tar -C /Users/flanker/.virtualenvs/autoplanner/var/autoplanner/data/media/ -xf /var/backups/autoplanner/backup_media.tar.gz
+  tar -C /var/autoplanner/data/media/ -xf /var/backups/autoplanner/backup_media.tar.gz
 
 
 
@@ -166,7 +163,8 @@ Here is a sample NRPE configuration file:
   cat << EOF | sudo tee /etc/nagios/nrpe.d/autoplanner.cfg
   command[autoplanner_wsgi]=/usr/lib/nagios/plugins/check_http -H 127.0.0.1 -p 9000
   command[autoplanner_redis]=/usr/lib/nagios/plugins/check_tcp -H localhost -p 6379
-  command[autoplanner_reverse_proxy]=/usr/lib/nagios/plugins/check_http -H localhost -p 80 -e 401
+  command[autoplanner_database]=/usr/lib/nagios/plugins/check_tcp -H localhost -p 5432
+  command[autoplanner_reverse_proxy]=/usr/lib/nagios/plugins/check_http -H autoplanner.example.org -p 80 -e 401
   command[autoplanner_backup_db]=/usr/lib/nagios/plugins/check_file_age -w 172800 -c 432000 /var/backups/autoplanner/backup_db.sql.gz
   command[autoplanner_backup_media]=/usr/lib/nagios/plugins/check_file_age -w 3024000 -c 6048000 /var/backups/autoplanner/backup_media.sql.gz
   command[autoplanner_gunicorn]=/usr/lib/nagios/plugins/check_procs -C python -a '/usr/local/bin/autoplanner-gunicorn'

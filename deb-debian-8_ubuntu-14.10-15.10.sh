@@ -47,8 +47,8 @@ sudo sed -i "s/localhost/$IP/g" /etc/autoplanner/settings.ini
 sudo a2ensite autoplanner.conf
 sudo a2dissite 000-default.conf
 sudo -u autoplanner autoplanner-manage migrate
-sudo service moneta-gunicorn start
-sudo service moneta-celery start
+sudo service autoplanner-gunicorn start
+sudo service autoplanner-celery start
 sudo service apache2 restart
 
 wget http://$IP/
