@@ -20,7 +20,6 @@ __author__ = 'Matthieu Gallet'
 
 @shared_task(serializer='json', bind=True)
 def compute_schedule(self, organization_id):
-    print('ok')
     celery_id = self.request.id
     start = datetime.datetime.now(tz=utc)
     count = Organization.objects \
@@ -29,11 +28,10 @@ def compute_schedule(self, organization_id):
                 message=_('Computation started at %(d)s, %(t)s') % {'d': date_format(start, use_l10n=True),
                                                                     't': time_format(start, use_l10n=True)})
     if count == 0:
-        print('unable to process')
         return
     organization = Organization.objects.get(pk=organization_id, celery_task_id=celery_id)
     scheduler = Scheduler(organization)
-    result_list = scheduler.solve(verbose=True)
+    result_list = scheduler.solve(verbose=False)
     result_dict = scheduler.result_by_agent(result_list)
     for agent_pk, task_pks in result_dict.items():
         Task.objects.filter(pk__in=task_pks, fixed=False, organization__id=organization_id).update(agent_id=agent_pk)

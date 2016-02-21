@@ -17,10 +17,12 @@ __author__ = 'Matthieu Gallet'
 class AgentInline(admin.TabularInline):
     model = Agent
     show_change_link = True
+    classes = ['collapse', 'collapsed']
 
 
 class CategoryInline(admin.TabularInline):
     model = Category
+    classes = ['collapse', 'collapsed']
 
     def get_extra(self, request, obj=None, **kwargs):
         if request.GET.get('readonly'):
@@ -37,6 +39,7 @@ class CategoryInline(admin.TabularInline):
 
 class TaskInline(admin.TabularInline):
     model = Task
+    classes = ['collapse', 'collapsed']
 
     @staticmethod
     def repeat_button(obj):
@@ -64,10 +67,12 @@ class TaskInline(admin.TabularInline):
 
 class MaxTaskAffectationInline(admin.TabularInline):
     model = MaxTaskAffectation
+    classes = ['collapse', 'collapsed']
 
 
 class MaxTimeTaskAffectationInline(admin.TabularInline):
     model = MaxTimeTaskAffectation
+    classes = ['collapse', 'collapsed']
 
 
 class OrganizationAdmin(admin.ModelAdmin):
@@ -96,12 +101,13 @@ class OrganizationAdmin(admin.ModelAdmin):
     schedule_button.short_description = _('Compute a complete schedule')
     readonly_fields = ('schedule_button', )
     fields = ['name', 'description', 'schedule_button', ]
-    inlines = [AgentInline, CategoryInline, TaskInline, MaxTaskAffectationInline, MaxTimeTaskAffectationInline]
+    inlines = [AgentInline, CategoryInline, MaxTaskAffectationInline, MaxTimeTaskAffectationInline, TaskInline, ]
 
 
 class AgentCategoryPreferencesInline(admin.StackedInline):
     model = AgentCategoryPreferences
     fields = ('category', 'agent', 'affinity', 'balancing_offset', 'balancing_count', )
+    classes = ['collapse', 'collapsed']
 
 
 class AgentTaskExclusionInline(admin.TabularInline):
@@ -133,7 +139,7 @@ class TaskAdmin(admin.ModelAdmin):
     readonly_fields = ('repeat_button', )
     repeat_button.short_description = _('Repeat')
 
-    fields = ['category', 'name', 'start_time', 'end_time', 'agent', 'fixed',]
+    fields = ['category', 'name', 'start_time', 'end_time', 'agent', 'fixed', ]
     list_display = ['name', 'category', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button', ]
     list_editable = ['category', 'start_time', 'end_time', 'agent', 'fixed']
     list_filter = ['category', 'agent', 'organization', 'fixed', ]

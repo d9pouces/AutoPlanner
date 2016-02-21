@@ -29,6 +29,8 @@ SECRET_KEY = '8FOOc2ETUHpRYqYvcZ6cvmXD2sz1W88JQjUQFpvHH0KeWRioyU'
 LP_SOLVE_PATH = 'lp_solve'
 
 DEBUG = False
+USE_CELERY = True
+
 
 PIPELINE_CSS = {
     'default': {
