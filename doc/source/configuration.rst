@@ -16,6 +16,13 @@ Here is the complete list of settings:
 
 .. code-block:: ini
 
+  [celery]
+  redis_db = 13
+  # database name of your Celery instance
+  redis_host = localhost
+  # hostname of your Redis database for Redis-based services (cache, Celery, websockets, sessions)
+  redis_port = 6379
+  # port of your Redis database
   [database]
   engine = django.db.backends.postgresql_psycopg2
   # SQL database engine, can be 'django.db.backends.[postgresql_psycopg2|mysql|sqlite3|oracle]'.

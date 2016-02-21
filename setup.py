@@ -35,7 +35,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     test_suite='autoplanner.tests',
-    install_requires=['djangofloor'],
+    install_requires=['djangofloor', 'icalendar', 'markdown', ],
     setup_requires=[],
     classifiers=['Development Status :: 3 - Alpha', 'Operating System :: MacOS :: MacOS X',
                  'Operating System :: Microsoft :: Windows', 'Operating System :: POSIX :: BSD',

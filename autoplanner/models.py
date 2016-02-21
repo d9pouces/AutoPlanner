@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+from django.core.urlresolvers import reverse
 
 from django.http import HttpRequest
 from django.utils.formats import date_format
@@ -37,6 +38,9 @@ class Organization(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('organization', kwargs={'organization_pk': self.pk})
 
 
 class Agent(models.Model):

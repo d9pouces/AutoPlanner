@@ -190,6 +190,10 @@ Now, it's time to install AutoPlanner:
     pip install autoplanner psycopg2 gevent
     mkdir -p $VIRTUAL_ENV/etc/autoplanner
     cat << EOF > $VIRTUAL_ENV/etc/autoplanner/settings.ini
+    [celery]
+    redis_db = 13
+    redis_host = localhost
+    redis_port = 6379
     [database]
     engine = django.db.backends.postgresql_psycopg2
     host = localhost

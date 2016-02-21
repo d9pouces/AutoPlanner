@@ -80,7 +80,7 @@ class OrganizationAdmin(admin.ModelAdmin):
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         obj = get_object_or_404(Organization, pk=object_id)
-        if obj.message:
+        if obj.message and request.method == 'GET':
             messages.info(request, obj.message)
         return super().change_view(request, object_id, form_url=form_url, extra_context=extra_context)
 
@@ -148,5 +148,5 @@ class TaskAdmin(admin.ModelAdmin):
 admin.site.register(Organization, OrganizationAdmin)
 admin.site.register(Agent, AgentAdmin)
 admin.site.register(Task, TaskAdmin)
-admin.site.unregister(Site)
+# admin.site.unregister(Site)
 admin.site.site_header = _('AutoPlanner')

@@ -9,15 +9,18 @@ from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.contrib import messages
 from django.contrib.admin.utils import quote
 from django.core.urlresolvers import reverse
-from django.http.response import HttpResponseRedirect
+from django.http.response import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.utils.translation import ugettext_lazy as _
 from djangofloor.celery import app
+from icalendar import Calendar, Event
+import markdown
 
 from autoplanner.admin import OrganizationAdmin
 from autoplanner.forms import MultiplyTaskForm
-from autoplanner.models import Organization, Task
+from autoplanner.models import Organization, Task, Category, Agent
+from autoplanner.schedule import Scheduler
 from autoplanner.tasks import compute_schedule
 
 __author__ = 'Matthieu Gallet'
@@ -30,16 +33,87 @@ def index(request):
     return render_to_response('autoplanner/index.html', template_values, RequestContext(request))
 
 
-def organization(request, organization_pk):
+def get_template_values(request, organization_pk):
     org = get_object_or_404(Organization.query(request), pk=organization_pk)
     assert isinstance(org, Organization)
-    tasks = org.task_set.all().order_by('start_time')
-    categories = org.category_set.all().order_by('name')
+    # noinspection PyProtectedMember
+    model_admin = admin.site._registry[Organization]
+    assert isinstance(model_admin, OrganizationAdmin)
+    # noinspection PyProtectedMember
+    opts = model_admin.model._meta
+    app_label = opts.app_label
+    preserved_filters = model_admin.get_preserved_filters(request)
+    form_url = add_preserved_filters({'preserved_filters': preserved_filters, 'opts': opts}, '?')
+    view_on_site_url = model_admin.get_view_on_site_url(org)
     template_values = {
-        'organization': org,
-        'tasks': tasks,
-        'categories': categories,
+        'is_popup': 0,
+        'add': False,
+        'change': True,
+        'has_change_permission': model_admin.has_change_permission(request, org),
+        'has_delete_permission': False,
+        'has_add_permission': False,
+        'has_file_field': False,
+        'has_absolute_url': view_on_site_url is not None,
+        'absolute_url': view_on_site_url,
+        'form_url': form_url,
+        'opts': opts,
+        'content_type_id': get_content_type_for_model(Task).pk,
+        'save_as': True,
+        'save_on_top': False,
+        'media': model_admin.media,
+        'to_field_var': TO_FIELD_VAR,
+        'is_popup_var': IS_POPUP_VAR,
+        'app_label': app_label,
+        'show_save': False,
     }
+    return template_values
+
+
+def organization(request, organization_pk):
+    template_values = get_template_values(request, organization_pk)
+    obj = get_object_or_404(Organization.query(request), pk=organization_pk)
+    scheduler = Scheduler(obj)
+    messages.info(request, obj.message)
+    statistics = {x.pk: {category.pk: [0, datetime.timedelta(0), None] for category in scheduler.categories}
+                  for x in scheduler.agents}
+    # [total_number, total_time, balanced_value]
+    for category in scheduler.categories:
+        if category.balancing_mode == Category.BALANCE_NUMBER:
+            for agent in scheduler.agents:
+                offset, __, __ = scheduler.preferences_by_agent_by_category[category.pk].get(agent.pk, (0., 1., 0.))
+                statistics[agent.pk][category.pk][2] = offset
+        elif category.balancing_mode == Category.BALANCE_TIME:
+            for agent in scheduler.agents:
+                offset, __, __ = scheduler.preferences_by_agent_by_category[category.pk].get(agent.pk, (0., 1., 0.))
+                statistics[agent.pk][category.pk][2] = datetime.timedelta(seconds=offset)
+    for task in scheduler.tasks:
+        if task.agent_id is None:
+            continue
+        for category_pk in scheduler.parent_categories_by_category[task.category_id]:
+            duration = task.duration
+            statistics[task.agent_id][category_pk][0] += 1
+            statistics[task.agent_id][category_pk][1] += duration
+            if scheduler.categories_by_pk[category_pk].balancing_mode is None:
+                continue
+            __, count, __ = scheduler.preferences_by_agent_by_category[category_pk].get(task.agent_id, (0., 1., 0.))
+            if scheduler.categories_by_pk[category_pk].balancing_mode == Category.BALANCE_NUMBER:
+                statistics[task.agent_id][category_pk][2] += count
+            elif scheduler.categories_by_pk[category_pk].balancing_mode == Category.BALANCE_TIME:
+                value = datetime.timedelta(seconds=duration.total_seconds() * count)
+                statistics[task.agent_id][category_pk][2] += value
+
+    categories = [category for category in scheduler.categories]
+    categories.sort(key=lambda x: x.name)
+    agents = [agent for agent in scheduler.agents]
+    agents.sort(key=lambda x: x.name)
+    sorted_statistics = [[x] + [statistics[x.pk][y.pk] for y in categories] for x in agents]
+    template_values.update({
+        'obj': obj,
+        'statistics': sorted_statistics,
+        'agents': agents,
+        'categories': categories,
+        'description': markdown.markdown(obj.description)
+    })
     return render_to_response('autoplanner/organization.html', template_values, RequestContext(request))
 
 
@@ -88,35 +162,9 @@ def multiply_task(request, task_pk):
             return HttpResponseRedirect(new_url)
     else:
         form = MultiplyTaskForm(initial={'source_task': obj})
-    template_values = {'is_popup': 0, }
-
-    app_label = opts.app_label
-    preserved_filters = model_admin.get_preserved_filters(request)
-    form_url = add_preserved_filters({'preserved_filters': preserved_filters, 'opts': opts}, '?')
-    view_on_site_url = model_admin.get_view_on_site_url(obj)
-    template_values.update({
-        'add': False,
-        'change': True,
-        'form': form,
-        'obj': obj,
-        'has_change_permission': model_admin.has_change_permission(request, obj),
-        'has_delete_permission': False,
-        'has_add_permission': False,
-        'has_file_field': False,
-        'has_absolute_url': view_on_site_url is not None,
-        'absolute_url': view_on_site_url,
-        'form_url': form_url,
-        'opts': opts,
-        'content_type_id': get_content_type_for_model(Task).pk,
-        'save_as': True,
-        'save_on_top': False,
-        'media': model_admin.media,
-        'to_field_var': TO_FIELD_VAR,
-        'is_popup_var': IS_POPUP_VAR,
-        'app_label': app_label,
-        'show_save': False,
-    })
-
+    template_values = get_template_values(request, organization_pk=obj.organization_id)
+    template_values['obj'] = obj
+    template_values['form'] = form
     return render_to_response('autoplanner/multiply_task.html', template_values, RequestContext(request))
 
 
@@ -153,3 +201,26 @@ def cancel_schedule_task(request, organization_pk):
     new_url = reverse('admin:%s_%s_change' % (opts.app_label, opts.model_name),
                       args=(quote(obj.pk), ), current_app=model_admin.admin_site.name)
     return HttpResponseRedirect(new_url)
+
+
+def generate_ics(request, organization_pk, agent_pk=None):
+    obj = get_object_or_404(Organization.query(request), pk=organization_pk)
+    cal = Calendar()
+    cal.add('prodid', '-//AutoPlanner//19pouces.net//')
+    cal.add('version', '2.0')
+    query = Task.objects.filter(organization=obj)
+    if agent_pk:
+        query = query.filter(agent__id=agent_pk)
+    agents = {x.pk: x.name for x in Agent.objects.filter(organization=obj)}
+    for task in query:
+        event = Event()
+        if task.agent_id:
+            summary = '%s (%s)' % (task.name, agents[task.agent_id])
+        else:
+            summary = task.name
+        event.add('summary', summary)
+        event.add('dtstart', task.start_time)
+        event.add('dtend', task.end_time)
+        event['uid'] = task.start_time.strftime('%Y%m%dT%H%M%S-') + str(task.pk)
+        cal.add_component(event)
+    return HttpResponse(cal.to_ical(), content_type='text/calendar')

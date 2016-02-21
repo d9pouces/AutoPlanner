@@ -25,11 +25,12 @@ class Scheduler(object):
         self.organization = organization
         self.agents = {x for x in organization.agent_set.all()}
         self.categories = {x for x in organization.category_set.all()}
+        self.categories_by_pk = {x.pk: x for x in self.categories}
         self.tasks = {x for x in organization.task_set.all()}
         self.agent_category_preferences = {x for x in organization.agentcategorypreferences_set.all()}
 
         self.task_durations = {task.pk: (task.end_time - task.start_time).total_seconds()
-                                for task in self.tasks}
+                               for task in self.tasks}
         self.agent_pks = {x.pk for x in self.agents}
         # self.agent_pks = {agent1.pk, agent2.pk, agent3.pk}
         self.parent_categories_by_category = self.get_parent_categories_by_category()
@@ -43,16 +44,15 @@ class Scheduler(object):
         self.max_task_affectations_by_category = self.get_max_task_affectations_by_category()
         # self.max_task_affectations_by_category[category.pk] = [max_task_affectation_1, max_task_affectation_2]
         self.available_agents_by_tasks = {task.pk: (self.agent_pks - self.agent_exclusions_by_task[task.pk])
-                                           for task in self.tasks}
+                                          for task in self.tasks}
 
     def get_parent_categories_by_category(self):
-        categories_by_pk = {x.pk: x for x in self.categories}
         parent_categories_per_category = {x.pk: [] for x in self.categories}
         for category in self.categories:
             parent_pk = category.pk
             while parent_pk is not None:
                 parent_categories_per_category[category.pk].append(parent_pk)
-                parent_pk = categories_by_pk[parent_pk].parent_category_id
+                parent_pk = self.categories_by_pk[parent_pk].parent_category_id
         return parent_categories_per_category
 
     def get_agent_exclusions_by_category(self):
@@ -80,7 +80,7 @@ class Scheduler(object):
         return agent_task_exclusions
 
     def get_preferences_by_agent_by_category(self):
-        preferences = {a.pk: {} for a in self.categories}
+        preferences = {c.pk: {} for c in self.categories}
         for a in self.agent_category_preferences:
             preferences[a.category_id][a.agent_id] = (a.balancing_offset, a.balancing_count, a.affinity)
         for category in self.categories:
@@ -103,7 +103,7 @@ class Scheduler(object):
         :param category_pk:
         """
         task_data = [(task.pk, task.start_time, task.end_time) for task in self.tasks
-                      if category_pk in self.parent_categories_by_category[task.category_id]]
+                     if category_pk in self.parent_categories_by_category[task.category_id]]
         task_data.sort(key=lambda x: (x[1], x[2]))
         agent_pks = self.agent_pks - self.agent_exclusions_by_category[category_pk]
         previous_start_time = None
@@ -169,7 +169,7 @@ class Scheduler(object):
                 continue
             category_pk = category.pk
             cat_task_pks = [task.pk for task in self.tasks
-                             if category_pk in self.parent_categories_by_category[task.category_id]]
+                            if category_pk in self.parent_categories_by_category[task.category_id]]
             cat_agent_pks = self.agent_pks - self.agent_exclusions_by_category[category_pk]
             for agent_pk in cat_agent_pks:
                 agent_preferences = self.preferences_by_agent_by_category[category_pk].get(agent_pk, (0, 1., 0.))
@@ -198,7 +198,7 @@ class Scheduler(object):
         for category in self.categories:
             category_pk = category.pk
             cat_task_pks = [(task.pk, task.start_time, task.end_time) for task in self.tasks
-                             if category_pk in self.parent_categories_by_category[task.category_id]]
+                            if category_pk in self.parent_categories_by_category[task.category_id]]
             # if category.auto_affinity:
             # cat_task_pks.sort(key=lambda x: x[1])
             for agent_pk in self.agent_pks - self.agent_exclusions_by_category[category_pk]:
