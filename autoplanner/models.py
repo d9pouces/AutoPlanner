@@ -56,7 +56,8 @@ class Organization(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('organization', kwargs={'organization_pk': self.pk})
+        return '%s?%s=%s' % (reverse('organization', kwargs={'organization_pk': self.pk}),
+                             API_KEY_VARIABLE, self.access_token)
 
 
 class OrganizationObject(models.Model):
