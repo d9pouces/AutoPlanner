@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from django.contrib import admin
-from django.contrib.sites.models import Site
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404
@@ -97,10 +96,13 @@ class OrganizationAdmin(admin.ModelAdmin):
                                    _('Cancel the schedule'))
         return ''
 
+    def get_queryset(self, request):
+        return self.model.query(request)
+
     schedule_button.allow_tags = True
     schedule_button.short_description = _('Compute a complete schedule')
     readonly_fields = ('schedule_button', )
-    fields = ['name', 'description', 'schedule_button', ]
+    fields = ['name', 'description', 'access_token', 'admins', 'schedule_button', ]
     inlines = [AgentInline, CategoryInline, MaxTaskAffectationInline, MaxTimeTaskAffectationInline, TaskInline, ]
 
 
@@ -118,6 +120,9 @@ class AgentTaskExclusionInline(admin.TabularInline):
 class AgentAdmin(admin.ModelAdmin):
     inlines = [AgentCategoryPreferencesInline, AgentTaskExclusionInline]
 
+    def get_queryset(self, request):
+        return self.model.query(request)
+
     def get_fields(self, request, obj=None):
         fields = ['name', 'start_time', 'end_time']
         if obj is None:
@@ -126,6 +131,9 @@ class AgentAdmin(admin.ModelAdmin):
 
 
 class TaskAdmin(admin.ModelAdmin):
+
+    def get_queryset(self, request):
+        return self.model.query(request)
 
     # noinspection PyMethodMayBeStatic
     def repeat_button(self, obj):

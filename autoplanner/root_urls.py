@@ -2,7 +2,6 @@
 
 from django.views.i18n import javascript_catalog
 from django.views.static import serve
-from django.utils.module_loading import import_string
 from django.conf import settings
 from django.conf.urls import include, url
 from django.contrib import admin
@@ -11,15 +10,10 @@ from djangofloor.scripts import load_celery
 
 from autoplanner import views
 
+
 __author__ = 'Matthieu Gallet'
 load_celery()
 admin.autodiscover()
-
-if settings.FLOOR_INDEX:
-    index_view = settings.FLOOR_INDEX
-else:
-    index_view = 'djangofloor.views.index'
-index_view = import_string(index_view)
 
 urlpatterns = [url(r'^accounts/', include('allauth.urls')),
                url(r'^jsi18n/$', javascript_catalog, {'packages': ('djangofloor', 'django.contrib.admin', ), }),
@@ -32,9 +26,11 @@ urlpatterns = [url(r'^accounts/', include('allauth.urls')),
                url('^org/ical/(?P<organization_pk>\d+)\.ics', views.generate_ics, name='ical'),
                url('^org/ical/(?P<organization_pk>\d+)/(?P<agent_pk>\d+)\.ics', views.generate_ics, name='ical'),
                url('^tasks/multiply/(?P<task_pk>\d+)\.html', views.multiply_task, name='multiply_task'),
+               url(r'^chaining/', include('smart_selects.urls')),
                url(r'^', include(admin.site.urls)),
                ]
 
 if settings.DEBUG:
     import debug_toolbar
+
     urlpatterns += [url(r'^__debug__/', include(debug_toolbar.urls)), ]

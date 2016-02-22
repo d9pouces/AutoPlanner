@@ -19,7 +19,7 @@ SESSION_REDIS_DB = 10
 # celery
 ########################################################################################################################
 
-FLOOR_INSTALLED_APPS = ['autoplanner', ]
+FLOOR_INSTALLED_APPS = ['autoplanner', 'smart_selects']
 FLOOR_INDEX = 'autoplanner.views.index'
 FLOOR_URL_CONF = 'autoplanner.root_urls.urls'
 FLOOR_PROJECT_NAME = 'AutoPlanner'
@@ -30,7 +30,6 @@ LP_SOLVE_PATH = 'lp_solve'
 
 USE_CELERY = True
 ROOT_URLCONF = 'autoplanner.root_urls'
-
 
 PIPELINE_CSS = {
     'default': {
@@ -47,7 +46,10 @@ PIPELINE_JS = {
     'default': {
         'source_filenames': ['js/jquery.min.js', 'bootstrap3/js/bootstrap.min.js',
                              'js/bootstrap-notify.min.js', 'js/djangofloor.js', 'js/bootstrap-select.min.js',
-                             'js/ws4redis.js', ExpandIterable('FLOOR_EXTRA_JS'), ],
+                             'js/ws4redis.js', ExpandIterable('FLOOR_EXTRA_JS'),
+                             'smart-selects/admin/js/chainedfk.js',
+                             'smart-selects/admin/js/chainedm2m.js',
+                             ],
         'output_filename': 'js/default.js',
     },
     'ie9': {

@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 import datetime
+import random
+from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 
 from django.http import HttpRequest
 from django.utils.formats import date_format
 from django.utils.timezone import LocalTimezone
 from django.utils.translation import ugettext_lazy as _
 from django.db import models
+from smart_selects.db_fields import ChainedForeignKey
 
 
 __author__ = 'Matthieu Gallet'
@@ -22,6 +26,12 @@ def default_day_end():
     return default_day_start() + datetime.timedelta(hours=23, minutes=59, seconds=59)
 
 
+def default_token(length=64, allowed_chars='abcdefghijklmnopqrstuvwxyz'
+                                           'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'):
+    # noinspection PyUnusedLocal
+    return ''.join([random.choice(allowed_chars) for i in range(length)])
+
+
 class Organization(models.Model):
     name = models.CharField(_('Name'), db_index=True, max_length=500)
     message = models.CharField(_('Message'), blank=True, max_length=500, default='')
@@ -30,11 +40,16 @@ class Organization(models.Model):
                                       default=None)
     celery_start = models.DateTimeField(_('Celery start'), null=True, blank=True, default=None)
     celery_end = models.DateTimeField(_('Celery end'), null=True, blank=True, default=None)
+    access_token = models.CharField(_('Access token'), default=default_token, max_length=300)
+    admins = models.ManyToManyField(settings.AUTH_USER_MODEL, db_index=True, verbose_name=_('Administrators'))
 
-    # noinspection PyUnusedLocal
     @classmethod
-    def query(cls, request: HttpRequest):
-        return cls.objects.all()
+    def query(cls, request: HttpRequest, readonly=False):
+        if request.user.is_superuser:
+            return cls.objects.all()
+        if readonly:
+            return cls.objects.filter(Q(admins=request.user) | Q(access_token=request.GET.get('api_key', '')))
+        return cls.objects.filter(admins=request.user)
 
     def __str__(self):
         return self.name
@@ -43,14 +58,26 @@ class Organization(models.Model):
         return reverse('organization', kwargs={'organization_pk': self.pk})
 
 
-class Agent(models.Model):
+class OrganizationObject(models.Model):
     organization = models.ForeignKey(Organization, db_index=True)
+
+    class Meta(object):
+        abstract = True
+
+    @classmethod
+    def query(cls, request: HttpRequest):
+        if request.user.is_superuser:
+            return cls.objects.all()
+        return cls.objects.filter(organization__admins=request.user)
+
+
+class Agent(OrganizationObject):
     name = models.CharField(_('Name'), db_index=True, max_length=500)
     start_time = models.DateTimeField(_('Arrival time'), db_index=True, default=None, blank=True, null=True,
-                                            help_text=_('Before this date, the agent cannot perform'
-                                                        'any task.'))
+                                      help_text=_('Before this date, the agent cannot perform'
+                                                  'any task.'))
     end_time = models.DateTimeField(_('Leaving time'), db_index=True, default=None, blank=True, null=True,
-                                          help_text=_('After this date, the agent cannot perform any task.'))
+                                    help_text=_('After this date, the agent cannot perform any task.'))
 
     class Meta(object):
         ordering = ('name', )
@@ -59,12 +86,16 @@ class Agent(models.Model):
         return self.name
 
 
-class Category(models.Model):
+class Category(OrganizationObject):
     BALANCE_TIME = 'time'
     BALANCE_NUMBER = 'number'
-    organization = models.ForeignKey(Organization, db_index=True)
-    parent_category = models.ForeignKey('self', db_index=True, null=True, blank=True, default=None,
-                                        verbose_name=_('Parent category'))
+    # parent_category = models.ForeignKey('self', db_index=True, null=True, blank=True, default=None,
+    # verbose_name=_('Parent category'))
+    parent_category = ChainedForeignKey('autoplanner.Category',
+                                        chained_field='organization',
+                                        chained_model_field='organization',
+                                        show_all=False, auto_choose=True, null=True, blank=True, default=None,
+                                        db_index=True, verbose_name=_('Parent category'))
     name = models.CharField(_('Name'), db_index=True, max_length=500)
     balancing_mode = models.CharField(_('Balancing mode'),
                                       max_length=10, choices=((None, _('No balancing')),
@@ -91,11 +122,15 @@ class Category(models.Model):
         verbose_name_plural = _('Categories of tasks')
 
 
-class MaxAffectation(models.Model):
+class MaxAffectation(OrganizationObject):
     MINIMUM = 'min'
     MAXIMUM = 'max'
-    organization = models.ForeignKey(Organization, db_index=True)
-    category = models.ForeignKey(Category, db_index=True)
+    # category = models.ForeignKey(Category, db_index=True)
+    category = ChainedForeignKey(Category,
+                                 chained_field='organization',
+                                 chained_model_field='organization',
+                                 show_all=False, auto_choose=True,
+                                 db_index=True)
     mode = models.CharField(_('Mode'), max_length=3, choices=((MINIMUM, _('At least this number of tasks')),
                                                               (MAXIMUM, _('At most this number of tasks'))),
                             default=MAXIMUM)
@@ -142,13 +177,23 @@ class MaxTimeTaskAffectation(MaxAffectation):
         verbose_name_plural = _('Maximum time spent by an agent in a category')
 
 
-class Task(models.Model):
-    organization = models.ForeignKey(Organization, db_index=True)
-    category = models.ForeignKey(Category, db_index=True)
+class Task(OrganizationObject):
+    # category = models.ForeignKey(Category, db_index=True)
+    category = ChainedForeignKey(Category,
+                                 chained_field='organization',
+                                 chained_model_field='organization',
+                                 show_all=False, auto_choose=True,
+                                 db_index=True)
     name = models.CharField(_('Name'), db_index=True, max_length=500)
     start_time = models.DateTimeField(_('Start time'), db_index=True, default=default_day_start)
     end_time = models.DateTimeField(_('End time'), db_index=True, default=default_day_end)
-    agent = models.ForeignKey(Agent, db_index=True, null=True, default=None, blank=True)
+    # agent = models.ForeignKey(Agent, db_index=True, null=True, default=None, blank=True)
+    agent = ChainedForeignKey(Agent,
+                              null=True, default=None, blank=True,
+                              chained_field='organization',
+                              chained_model_field='organization',
+                              show_all=False, auto_choose=True,
+                              db_index=True)
     fixed = models.BooleanField(_('Forced agent'), db_index=True, default=False)
 
     def save(self, force_insert=False, force_update=False, using=None,
@@ -171,10 +216,20 @@ class Task(models.Model):
         return '%s (%s -> %s)' % (self.name, start, end)
 
 
-class AgentCategoryPreferences(models.Model):
-    organization = models.ForeignKey(Organization, db_index=True)
-    category = models.ForeignKey(Category, db_index=True)
-    agent = models.ForeignKey(Agent, db_index=True)
+class AgentCategoryPreferences(OrganizationObject):
+    # category = models.ForeignKey(Category, db_index=True)
+    category = ChainedForeignKey(Category,
+                                 chained_field='organization',
+                                 chained_model_field='organization',
+                                 show_all=False, auto_choose=True,
+                                 db_index=True)
+    # agent = models.ForeignKey(Agent, db_index=True)
+    agent = ChainedForeignKey(Agent,
+                              null=True, default=None, blank=True,
+                              chained_field='organization',
+                              chained_model_field='organization',
+                              show_all=False, auto_choose=True,
+                              db_index=True)
     affinity = models.FloatField(_('Affinity of the agent for the category.'), default=0., blank=True)
     balancing_offset = models.FloatField(_('Number of time units already done'), default=0, blank=True)
     balancing_count = models.FloatField(_('If an agent should perform less tasks of this category,'
@@ -191,11 +246,22 @@ class AgentCategoryPreferences(models.Model):
                      update_fields=update_fields)
 
 
-class AgentTaskExclusion(models.Model):
-    organization = models.ForeignKey(Organization, db_index=True)
-    agent = models.ForeignKey(Agent, db_index=True)
-    task = models.ForeignKey(Task, db_index=True, verbose_name=_('Task'),
-                             help_text=_('Select the task that cannot be performed by the agent.'))
+class AgentTaskExclusion(OrganizationObject):
+    # agent = models.ForeignKey(Agent, db_index=True)
+    agent = ChainedForeignKey(Agent,
+                              null=True, default=None, blank=True,
+                              chained_field='organization',
+                              chained_model_field='organization',
+                              show_all=False, auto_choose=True,
+                              db_index=True)
+    # task = models.ForeignKey(Task, db_index=True, verbose_name=_('Task'),
+    # help_text=_('Select the task that cannot be performed by the agent.'))
+    task = ChainedForeignKey(Task, verbose_name=_('Task'),
+                             null=True, default=None, blank=True,
+                             chained_field='organization',
+                             chained_model_field='organization',
+                             show_all=False, auto_choose=True,
+                             db_index=True, help_text=_('Select the task that cannot be performed by the agent.'))
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):

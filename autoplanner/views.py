@@ -26,15 +26,8 @@ from autoplanner.tasks import compute_schedule
 __author__ = 'Matthieu Gallet'
 
 
-def index(request):
-    template_values = {
-        'organizations': Organization.query(request).order_by('name')
-    }
-    return render_to_response('autoplanner/index.html', template_values, RequestContext(request))
-
-
 def get_template_values(request, organization_pk):
-    org = get_object_or_404(Organization.query(request), pk=organization_pk)
+    org = get_object_or_404(Organization.query(request, readonly=True), pk=organization_pk)
     assert isinstance(org, Organization)
     # noinspection PyProtectedMember
     model_admin = admin.site._registry[Organization]
@@ -71,7 +64,7 @@ def get_template_values(request, organization_pk):
 
 def organization(request, organization_pk):
     template_values = get_template_values(request, organization_pk)
-    obj = get_object_or_404(Organization.query(request), pk=organization_pk)
+    obj = get_object_or_404(Organization.query(request, readonly=True), pk=organization_pk)
     scheduler = Scheduler(obj)
     messages.info(request, obj.message)
     statistics = {x.pk: {category.pk: [0, datetime.timedelta(0), None] for category in scheduler.categories}
@@ -118,7 +111,7 @@ def organization(request, organization_pk):
 
 
 def multiply_task(request, task_pk):
-    obj = get_object_or_404(Task, pk=task_pk)
+    obj = get_object_or_404(Task.query(request), pk=task_pk)
     # noinspection PyProtectedMember
     model_admin = admin.site._registry[Organization]
     assert isinstance(model_admin, OrganizationAdmin)
@@ -169,7 +162,7 @@ def multiply_task(request, task_pk):
 
 
 def schedule_task(request, organization_pk):
-    obj = get_object_or_404(Organization, pk=organization_pk)
+    obj = get_object_or_404(Organization.query(request), pk=organization_pk)
     # noinspection PyProtectedMember
     model_admin = admin.site._registry[Organization]
     assert isinstance(model_admin, OrganizationAdmin)
@@ -187,7 +180,7 @@ def schedule_task(request, organization_pk):
 
 
 def cancel_schedule_task(request, organization_pk):
-    obj = get_object_or_404(Organization, pk=organization_pk)
+    obj = get_object_or_404(Organization.query(request), pk=organization_pk)
     # noinspection PyProtectedMember
     model_admin = admin.site._registry[Organization]
     assert isinstance(model_admin, OrganizationAdmin)
@@ -204,7 +197,7 @@ def cancel_schedule_task(request, organization_pk):
 
 
 def generate_ics(request, organization_pk, agent_pk=None):
-    obj = get_object_or_404(Organization.query(request), pk=organization_pk)
+    obj = get_object_or_404(Organization.query(request, readonly=True), pk=organization_pk)
     cal = Calendar()
     cal.add('prodid', '-//AutoPlanner//19pouces.net//')
     cal.add('version', '2.0')
