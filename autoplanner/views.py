@@ -19,7 +19,7 @@ import markdown
 
 from autoplanner.admin import OrganizationAdmin
 from autoplanner.forms import MultiplyTaskForm
-from autoplanner.models import Organization, Task, Category, Agent
+from autoplanner.models import Organization, Task, Category, Agent, API_KEY_VARIABLE
 from autoplanner.schedule import Scheduler
 from autoplanner.tasks import compute_schedule
 
@@ -105,7 +105,8 @@ def organization(request, organization_pk):
         'statistics': sorted_statistics,
         'agents': agents,
         'categories': categories,
-        'description': markdown.markdown(obj.description)
+        'description': markdown.markdown(obj.description),
+        'api_key_variable': API_KEY_VARIABLE,
     })
     return render_to_response('autoplanner/organization.html', template_values, RequestContext(request))
 

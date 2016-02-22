@@ -12,6 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.db import models
 from smart_selects.db_fields import ChainedForeignKey
 
+API_KEY_VARIABLE = 'api_key'
 
 __author__ = 'Matthieu Gallet'
 
@@ -48,7 +49,7 @@ class Organization(models.Model):
         if request.user.is_superuser:
             return cls.objects.all()
         if readonly:
-            return cls.objects.filter(Q(admins=request.user) | Q(access_token=request.GET.get('api_key', '')))
+            return cls.objects.filter(Q(admins=request.user) | Q(access_token=request.GET.get(API_KEY_VARIABLE, '')))
         return cls.objects.filter(admins=request.user)
 
     def __str__(self):
