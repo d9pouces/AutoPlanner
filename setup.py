@@ -29,7 +29,7 @@ setup(
     author='Matthieu Gallet',
     author_email='matthieu.gallet@19pouces.net',
     license='CeCILL-B',
-    url='',
+    url='http://autoplanner.readthedocs.org/en/latest/',
     entry_points=entry_points,
     packages=find_packages(),
     include_package_data=True,

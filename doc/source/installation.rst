@@ -205,7 +205,7 @@ Now, it's time to install AutoPlanner:
     admin_email = admin@autoplanner.example.org
     bind_address = 127.0.0.1:9000
     data_path = /var/autoplanner
-    debug = False
+    debug = True
     default_group = Users
     extra_apps = 
     language_code = fr-fr
