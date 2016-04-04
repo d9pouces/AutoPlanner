@@ -18,7 +18,6 @@ with codecs.open(os.path.join(os.path.dirname(__file__), 'README.md'), encoding=
 
 entry_points = {'console_scripts': ['autoplanner-manage = djangofloor.scripts:manage',
                                     'autoplanner-celery = djangofloor.scripts:celery',
-                                    'autoplanner-uswgi = djangofloor.scripts:uswgi',
                                     'autoplanner-gunicorn = djangofloor.scripts:gunicorn']}
 
 setup(

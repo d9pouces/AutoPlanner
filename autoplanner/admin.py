@@ -76,6 +76,7 @@ class MaxTimeTaskAffectationInline(admin.TabularInline):
 
 class OrganizationAdmin(admin.ModelAdmin):
     exclude = ['message', 'celery_task_id', 'celery_start', 'celery_end']
+    list_display = ['name', 'message', 'access_token']
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         obj = get_object_or_404(Organization, pk=object_id)
@@ -119,6 +120,7 @@ class AgentTaskExclusionInline(admin.TabularInline):
 
 class AgentAdmin(admin.ModelAdmin):
     inlines = [AgentCategoryPreferencesInline, AgentTaskExclusionInline]
+    list_display = ('name', 'organization', 'start_time', 'end_time', )
 
     def get_queryset(self, request):
         return self.model.query(request)
@@ -153,8 +155,14 @@ class TaskAdmin(admin.ModelAdmin):
     list_filter = ['category', 'agent', 'organization', 'fixed', ]
 
 
+class AgentCategoryPreferencesAdmin(admin.ModelAdmin):
+    list_display = ['category', 'agent', 'affinity', 'balancing_offset', 'balancing_count']
+    list_filter = ['category', 'agent']
+
+
 admin.site.register(Organization, OrganizationAdmin)
 admin.site.register(Agent, AgentAdmin)
 admin.site.register(Task, TaskAdmin)
+admin.site.register(AgentCategoryPreferences, AgentCategoryPreferencesAdmin)
 # admin.site.unregister(Site)
 admin.site.site_header = _('AutoPlanner')

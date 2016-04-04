@@ -179,7 +179,7 @@ class Scheduler(object):
                 else:
                     ag_sum = ['%g * %d * %s' % (agent_preferences[1], self.task_durations[task_pk],
                                                 self.variable(agent_pk, task_pk)) for task_pk in cat_task_pks]
-                yield Constraint('%g + %s = %s' % (agent_preferences[0], ' + '.join(ag_sum),
+                yield Constraint('%g + %s = %s' % (agent_preferences[0] * agent_preferences[1], ' + '.join(ag_sum),
                                                    self.category_variable(category_pk, agent_pk)))
             ag_sum = [self.category_variable(category_pk, agent_pk) for agent_pk in cat_agent_pks]
             yield Constraint('%s = %s' % (' + '.join(ag_sum), self.category_variable(category_pk)))

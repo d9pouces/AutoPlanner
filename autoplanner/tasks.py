@@ -30,12 +30,14 @@ def compute_schedule(self, organization_id):
     if count == 0:
         return
     organization = Organization.objects.get(pk=organization_id, celery_task_id=celery_id)
+    print('schedule launched for %s' % organization)
     scheduler = Scheduler(organization)
     result_list = scheduler.solve(verbose=False)
     result_dict = scheduler.result_by_agent(result_list)
     for agent_pk, task_pks in result_dict.items():
         Task.objects.filter(pk__in=task_pks, fixed=False, organization__id=organization_id).update(agent_id=agent_pk)
     end = datetime.datetime.now(tz=utc)
+    print('schedule finished for %s' % organization)
     if result_dict:
         message = _('Computation finished at %(d)s, %(t)s') % {'d': date_format(end, use_l10n=True),
                                                                't': time_format(end, use_l10n=True)}
