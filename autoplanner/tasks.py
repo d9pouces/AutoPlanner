@@ -32,10 +32,12 @@ def compute_schedule(self, organization_id):
     organization = Organization.objects.get(pk=organization_id, celery_task_id=celery_id)
     print('schedule launched for %s' % organization)
     scheduler = Scheduler(organization)
-    result_list = scheduler.solve(verbose=False)
+    result_list = scheduler.solve(verbose=True)
     result_dict = scheduler.result_by_agent(result_list)
     for agent_pk, task_pks in result_dict.items():
-        Task.objects.filter(pk__in=task_pks, fixed=False, organization__id=organization_id).update(agent_id=agent_pk)
+        c = Task.objects.filter(pk__in=task_pks, fixed=False, organization__id=organization_id).update(agent_id=agent_pk)
+        if c == 0:
+            print('erreur task %s agent %d' % (task_pks, agent_pk))
     end = datetime.datetime.now(tz=utc)
     print('schedule finished for %s' % organization)
     if result_dict:

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+from django.views.decorators.cache import never_cache
 import re
 
 from django.contrib import admin
@@ -62,6 +63,7 @@ def get_template_values(request, organization_pk):
     return template_values
 
 
+@never_cache
 def organization(request, organization_pk):
     template_values = get_template_values(request, organization_pk)
     obj = get_object_or_404(Organization.query(request, readonly=True), pk=organization_pk)
@@ -111,6 +113,7 @@ def organization(request, organization_pk):
     return render_to_response('autoplanner/organization.html', template_values, RequestContext(request))
 
 
+@never_cache
 def multiply_task(request, task_pk):
     obj = get_object_or_404(Task.query(request), pk=task_pk)
     # noinspection PyProtectedMember
@@ -162,6 +165,7 @@ def multiply_task(request, task_pk):
     return render_to_response('autoplanner/multiply_task.html', template_values, RequestContext(request))
 
 
+@never_cache
 def schedule_task(request, organization_pk):
     obj = get_object_or_404(Organization.query(request), pk=organization_pk)
     # noinspection PyProtectedMember
@@ -180,6 +184,7 @@ def schedule_task(request, organization_pk):
     return HttpResponseRedirect(new_url)
 
 
+@never_cache
 def cancel_schedule_task(request, organization_pk):
     obj = get_object_or_404(Organization.query(request), pk=organization_pk)
     # noinspection PyProtectedMember
@@ -197,6 +202,7 @@ def cancel_schedule_task(request, organization_pk):
     return HttpResponseRedirect(new_url)
 
 
+@never_cache
 def generate_ics(request, organization_pk, agent_pk=None):
     obj = get_object_or_404(Organization.query(request, readonly=True), pk=organization_pk)
     cal = Calendar()
