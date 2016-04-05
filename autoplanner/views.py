@@ -75,12 +75,12 @@ def organization(request, organization_pk):
     for category in scheduler.categories:
         if category.balancing_mode == Category.BALANCE_NUMBER:
             for agent in scheduler.agents:
-                offset, __, __ = scheduler.preferences_by_agent_by_category[category.pk].get(agent.pk, (0., 1., 0.))
-                statistics[agent.pk][category.pk][2] = offset
+                offset, count, __ = scheduler.preferences_by_agent_by_category[category.pk].get(agent.pk, (0., 1., 0.))
+                statistics[agent.pk][category.pk][2] = offset * count
         elif category.balancing_mode == Category.BALANCE_TIME:
             for agent in scheduler.agents:
-                offset, __, __ = scheduler.preferences_by_agent_by_category[category.pk].get(agent.pk, (0., 1., 0.))
-                statistics[agent.pk][category.pk][2] = datetime.timedelta(seconds=offset)
+                offset, count, __ = scheduler.preferences_by_agent_by_category[category.pk].get(agent.pk, (0., 1., 0.))
+                statistics[agent.pk][category.pk][2] = datetime.timedelta(seconds=offset * count)
     for task in scheduler.tasks:
         if task.agent_id is None:
             continue
