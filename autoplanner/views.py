@@ -140,18 +140,25 @@ def multiply_task(request, task_pk):
             else:
                 new_name = obj.name
                 name_index = 2
-            all_categories_to_create = []
             current_category_pks = [x.pk for x in obj.categories.all()]
             while start_time < limit:
-                new_task = Task(organization_id=obj.organization_id, category_id=obj.category_id,
-                                name='%s (%d)' % (new_name, name_index),
+                new_task = Task(organization_id=obj.organization_id, name='%s (%d)' % (new_name, name_index),
                                 start_time=start_time, end_time=end_time)
                 to_create.append(new_task)
                 start_time += increment
                 end_time += increment
                 name_index += 1
             if to_create:
-                Task.objects.bulk_create(to_create)
+                if current_category_pks:
+                    cls = Task.categories.through
+                    all_categories_to_create = []
+                    for new_task in to_create:
+                        new_task.save()
+                        all_categories_to_create += [cls(task_id=new_task.pk, category_id=category_pk)
+                                                     for category_pk in current_category_pks]
+                    cls.objects.bulk_create(all_categories_to_create)
+                else:
+                    Task.objects.bulk_create(to_create)
             if len(to_create) > 1:
                 messages.info(request, _('%(count)d tasks have been created.') % {'count': len(to_create)})
             elif to_create:
