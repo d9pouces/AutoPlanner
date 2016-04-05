@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import celery
-import datetime
 from django.utils.formats import date_format, time_format
-from django.utils.timezone import utc
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+
 from autoplanner.models import Organization, Task
 from autoplanner.schedule import Scheduler
-
 
 # used to avoid strange import bug with Python 3.2/3.3
 # noinspection PyStatementEffect
@@ -21,7 +20,7 @@ __author__ = 'Matthieu Gallet'
 @shared_task(serializer='json', bind=True)
 def compute_schedule(self, organization_id):
     celery_id = self.request.id
-    start = datetime.datetime.now(tz=utc)
+    start = timezone.localtime(timezone.now())
     count = Organization.objects \
         .filter(pk=organization_id, celery_task_id=None) \
         .update(celery_task_id=celery_id, celery_start=start,
@@ -35,10 +34,11 @@ def compute_schedule(self, organization_id):
     result_list = scheduler.solve(verbose=True)
     result_dict = scheduler.result_by_agent(result_list)
     for agent_pk, task_pks in result_dict.items():
-        c = Task.objects.filter(pk__in=task_pks, fixed=False, organization__id=organization_id).update(agent_id=agent_pk)
+        c = Task.objects.filter(pk__in=task_pks, fixed=False, organization__id=organization_id)\
+            .update(agent_id=agent_pk)
         if c == 0:
             print('erreur task %s agent %d' % (task_pks, agent_pk))
-    end = datetime.datetime.now(tz=utc)
+    end = timezone.localtime(timezone.now())
     print('schedule finished for %s' % organization)
     if result_dict:
         message = _('Computation finished at %(d)s, %(t)s') % {'d': date_format(end, use_l10n=True),
