@@ -47,7 +47,7 @@ PIPELINE_JS = {
         'source_filenames': ['js/jquery.min.js', 'bootstrap3/js/bootstrap.min.js',
                              'js/bootstrap-notify.min.js', 'js/djangofloor.js', 'js/bootstrap-select.min.js',
                              'js/ws4redis.js', ExpandIterable('FLOOR_EXTRA_JS'),
-                             'smart-selects/admin/js/chainedfk.js',
+                             'smart-selects/admin/js/chainedfk.js', 'admin/js/jquery.min.js',
                              'smart-selects/admin/js/chainedm2m.js',
                              ],
         'output_filename': 'js/default.js',
@@ -57,4 +57,4 @@ PIPELINE_JS = {
         'output_filename': 'js/ie9.js',
     }
 }
-DEBUG = False
+DEBUG = True

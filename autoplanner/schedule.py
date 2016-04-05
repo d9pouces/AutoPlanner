@@ -5,8 +5,7 @@ import subprocess
 
 from django.conf import settings
 
-from autoplanner.models import Organization, MaxTimeTaskAffectation
-
+from autoplanner.models import Organization, MaxTimeTaskAffectation, Task
 
 __author__ = 'Matthieu Gallet'
 
@@ -33,8 +32,10 @@ class Scheduler(object):
                                for task in self.tasks}
         self.agent_pks = {x.pk for x in self.agents}
         # self.agent_pks = {agent1.pk, agent2.pk, agent3.pk}
-        self.parent_categories_by_category = self.get_parent_categories_by_category()
-        # self.parent_categories_by_category[category.pk] = [category.pk, category.parent.pk, category.parent.parent.pk]
+        self.categories_by_task = self.get_categories_by_task()
+        # self.categories_by_task[task.pk] = {category1.pk, category2.pk, category3.pk}
+        self.tasks_by_category = self.get_tasks_by_category()
+        # self.tasks_by_categories[category.pk] = {task1, task2, task3}
         self.agent_exclusions_by_category = self.get_agent_exclusions_by_category()
         # self.agent_exclusions_by_category[category.pk] = {agent1.pk, agent2.pk, agent3.pk}
         self.agent_exclusions_by_task = self.get_agent_exclusions_by_task()
@@ -46,14 +47,19 @@ class Scheduler(object):
         self.available_agents_by_tasks = {task.pk: (self.agent_pks - self.agent_exclusions_by_task[task.pk])
                                           for task in self.tasks}
 
-    def get_parent_categories_by_category(self):
-        parent_categories_per_category = {x.pk: [] for x in self.categories}
-        for category in self.categories:
-            parent_pk = category.pk
-            while parent_pk is not None:
-                parent_categories_per_category[category.pk].append(parent_pk)
-                parent_pk = self.categories_by_pk[parent_pk].parent_category_id
-        return parent_categories_per_category
+    def get_categories_by_task(self):
+        result = {x.pk: set() for x in self.tasks}
+        for related in Task.categories.through.objects.filter(category__id__in=self.categories_by_pk):
+            result[related.task_id].add(related.category_id)
+        return result
+
+    def get_tasks_by_category(self):
+        result = {x.pk: set() for x in self.categories}
+        tasks_by_pk = {x.pk: x for x in self.tasks}
+        for task_pk, category_pks in self.categories_by_task.items():
+            for category_pk in category_pks:
+                result[category_pk].add(tasks_by_pk[task_pk])
+        return result
 
     def get_agent_exclusions_by_category(self):
         agent_exclusions_by_category = {category.pk: set() for category in self.categories}
@@ -66,7 +72,7 @@ class Scheduler(object):
         agent_task_exclusions = {task.pk: set() for task in self.tasks}
         for task in self.tasks:
             task_pk = task.pk
-            for category_pk in self.parent_categories_by_category[task.category_id]:
+            for category_pk in self.categories_by_task[task_pk]:
                 for agent_pk in self.agent_exclusions_by_category[category_pk]:
                     agent_task_exclusions[task_pk].add(agent_pk)
             for agent in self.agents:
@@ -83,11 +89,6 @@ class Scheduler(object):
         preferences = {c.pk: {} for c in self.categories}
         for a in self.agent_category_preferences:
             preferences[a.category_id][a.agent_id] = (a.balancing_offset, a.balancing_count, a.affinity)
-        for category in self.categories:
-            for agent_pk in self.agent_pks:
-                for parent_pk in self.parent_categories_by_category[category.pk][1:]:
-                    if agent_pk in preferences[parent_pk]:
-                        preferences[category.pk][agent_pk] = preferences[parent_pk][agent_pk]
         return preferences
 
     def get_max_task_affectations_by_category(self):
@@ -102,8 +103,7 @@ class Scheduler(object):
         """ "Agent A cannot execute more than X tasks of category C in less than T time slices"
         :param category_pk:
         """
-        task_data = [(task.pk, task.start_time, task.end_time) for task in self.tasks
-                     if category_pk in self.parent_categories_by_category[task.category_id]]
+        task_data = [(task.pk, task.start_time, task.end_time) for task in self.tasks_by_category[category_pk]]
         task_data.sort(key=lambda x: (x[1], x[2]))
         agent_pks = self.agent_pks - self.agent_exclusions_by_category[category_pk]
         previous_start_time = None
@@ -138,6 +138,9 @@ class Scheduler(object):
         """
         for task_pk, task_agent_pks in self.available_agents_by_tasks.items():
             yield Constraint('%s = 1' % ' + '.join([self.variable(agent_pk, task_pk) for agent_pk in task_agent_pks]))
+            if len(task_agent_pks) == len(self.agent_pks):
+                continue
+            yield Constraint('%s = 1' % ' + '.join([self.variable(agent_pk, task_pk) for agent_pk in self.agent_pks]))
 
     def apply_fixed_tasks(self):
         """ "Task E must be performed by agent A" """
@@ -146,7 +149,7 @@ class Scheduler(object):
                 yield Constraint('%s = 1' % self.variable(task.agent_id, task.pk))
 
     def apply_single_task_per_agent(self):
-        """ "Agent X can perform at most one task at a time" """
+        """ "Agent X can perform at most one task (of the same category) at a time" """
         current_tasks = set()
         resumed_tasks = {}
         for task in self.tasks:
@@ -159,17 +162,21 @@ class Scheduler(object):
                 action(task_pk)
             if not current_tasks:
                 continue
+            current_tasks_by_category = {}
+            for task_pk in current_tasks:
+                for category_pk in self.categories_by_task[task_pk]:
+                    current_tasks_by_category.setdefault(category_pk, set()).add(task_pk)
             for agent_pk in self.agent_pks:
-                variables = [self.variable(agent_pk, task_pk) for task_pk in current_tasks]
-                yield Constraint('%s <= 1' % ' + '.join(variables))
+                for current_task_subset in current_tasks_by_category.values():
+                    variables = [self.variable(agent_pk, task_pk) for task_pk in current_task_subset]
+                    yield Constraint('%s <= 1' % ' + '.join(variables))
 
     def apply_balancing_constraints(self):
         for category in self.categories:
             if category.balancing_mode is None or category.balancing_tolerance is None:
                 continue
             category_pk = category.pk
-            cat_task_pks = [task.pk for task in self.tasks
-                            if category_pk in self.parent_categories_by_category[task.category_id]]
+            cat_task_pks = [task.pk for task in self.tasks_by_category[category_pk]]
             cat_agent_pks = self.agent_pks - self.agent_exclusions_by_category[category_pk]
             for agent_pk in cat_agent_pks:
                 agent_preferences = self.preferences_by_agent_by_category[category_pk].get(agent_pk, (0, 1., 0.))
@@ -197,8 +204,7 @@ class Scheduler(object):
         variables = []
         for category in self.categories:
             category_pk = category.pk
-            cat_task_pks = [(task.pk, task.start_time, task.end_time) for task in self.tasks
-                            if category_pk in self.parent_categories_by_category[task.category_id]]
+            cat_task_pks = [(task.pk, task.start_time, task.end_time) for task in self.tasks_by_category[category_pk]]
             # if category.auto_affinity:
             # cat_task_pks.sort(key=lambda x: x[1])
             for agent_pk in self.agent_pks - self.agent_exclusions_by_category[category_pk]:

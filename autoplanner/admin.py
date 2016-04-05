@@ -32,7 +32,7 @@ class CategoryInline(admin.TabularInline):
 
     def get_readonly_fields(self, request, obj=None):
         if request.GET.get('readonly'):
-            return ['parent_category', 'name', 'balancing_mode', 'balancing_tolerance', 'auto_affinity']
+            return ['name', 'balancing_mode', 'balancing_tolerance', 'auto_affinity']
         return []
 
 
@@ -51,11 +51,11 @@ class TaskInline(admin.TabularInline):
     repeat_button.allow_tags = True
     repeat_button.verbose_name = _('Repeat')
     readonly_fields = ('repeat_button', )
-    fields = ('category', 'name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button')
+    fields = ('categories', 'name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button')
 
     def get_readonly_fields(self, request, obj=None):
         if request.GET.get('readonly'):
-            return ['category', 'name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button', ]
+            return ['categories', 'name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button', ]
         return ['repeat_button', ]
 
     def get_extra(self, request, obj=None, **kwargs):
@@ -121,6 +121,7 @@ class AgentTaskExclusionInline(admin.TabularInline):
 class AgentAdmin(admin.ModelAdmin):
     inlines = [AgentCategoryPreferencesInline, AgentTaskExclusionInline]
     list_display = ('name', 'organization', 'start_time', 'end_time', )
+    list_filter = ('organization', )
 
     def get_queryset(self, request):
         return self.model.query(request)
@@ -149,15 +150,15 @@ class TaskAdmin(admin.ModelAdmin):
     readonly_fields = ('repeat_button', )
     repeat_button.short_description = _('Repeat')
 
-    fields = ['category', 'name', 'start_time', 'end_time', 'agent', 'fixed', ]
-    list_display = ['name', 'category', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button', ]
-    list_editable = ['category', 'start_time', 'end_time', 'agent', 'fixed']
-    list_filter = ['category', 'agent', 'organization', 'fixed', ]
+    fields = ['categories', 'name', 'start_time', 'end_time', 'agent', 'fixed', ]
+    list_display = ['name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button', ]
+    list_editable = ['start_time', 'end_time', 'agent', 'fixed']
+    list_filter = ['categories', 'agent', 'organization', 'fixed', ]
 
 
 class AgentCategoryPreferencesAdmin(admin.ModelAdmin):
     list_display = ['category', 'agent', 'affinity', 'balancing_offset', 'balancing_count']
-    list_filter = ['category', 'agent']
+    list_filter = ['category', 'agent', 'organization', ]
 
 
 admin.site.register(Organization, OrganizationAdmin)

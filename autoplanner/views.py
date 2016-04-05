@@ -84,7 +84,7 @@ def organization(request, organization_pk):
     for task in scheduler.tasks:
         if task.agent_id is None:
             continue
-        for category_pk in scheduler.parent_categories_by_category[task.category_id]:
+        for category_pk in scheduler.categories_by_task[task.pk]:
             duration = task.duration
             statistics[task.agent_id][category_pk][0] += 1
             statistics[task.agent_id][category_pk][1] += duration
@@ -140,6 +140,8 @@ def multiply_task(request, task_pk):
             else:
                 new_name = obj.name
                 name_index = 2
+            all_categories_to_create = []
+            current_category_pks = [x.pk for x in obj.categories.all()]
             while start_time < limit:
                 new_task = Task(organization_id=obj.organization_id, category_id=obj.category_id,
                                 name='%s (%d)' % (new_name, name_index),
