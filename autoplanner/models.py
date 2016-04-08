@@ -113,12 +113,12 @@ class Category(OrganizationObject):
 class MaxAffectation(OrganizationObject):
     MINIMUM = 'min'
     MAXIMUM = 'max'
-    # category = models.ForeignKey(Category, db_index=True)
-    category = ChainedForeignKey(Category,
-                                 chained_field='organization',
-                                 chained_model_field='organization',
-                                 show_all=False, auto_choose=True,
-                                 db_index=True)
+    category = models.ForeignKey(Category, db_index=True)
+    # category = ChainedForeignKey(Category,
+    #                              chained_field='organization',
+    #                              chained_model_field='organization',
+    #                              show_all=False, auto_choose=True,
+    #                              db_index=True)
     mode = models.CharField(_('Mode'), max_length=3, choices=((MINIMUM, _('At least this number of tasks')),
                                                               (MAXIMUM, _('At most this number of tasks'))),
                             default=MAXIMUM)
@@ -166,20 +166,20 @@ class MaxTimeTaskAffectation(MaxAffectation):
 
 
 class Task(OrganizationObject):
-    # categories = models.ManyToManyField(Category, db_index=True, blank=True)
-    categories = ChainedManyToManyField(Category,
-                                        chained_field='organization', blank=True,
-                                        chained_model_field='organization', auto_choose=True, db_index=True)
+    categories = models.ManyToManyField(Category, db_index=True, blank=True)
+    # categories = ChainedManyToManyField(Category,
+    #                                     chained_field='organization', blank=True,
+    #                                     chained_model_field='organization', auto_choose=True, db_index=True)
     name = models.CharField(_('Name'), db_index=True, max_length=500)
     start_time = models.DateTimeField(_('Start time'), db_index=True, default=default_day_start)
     end_time = models.DateTimeField(_('End time'), db_index=True, default=default_day_end)
-    # agent = models.ForeignKey(Agent, db_index=True, null=True, default=None, blank=True)
-    agent = ChainedForeignKey(Agent,
-                              null=True, default=None, blank=True,
-                              chained_field='organization',
-                              chained_model_field='organization',
-                              show_all=False, auto_choose=True,
-                              db_index=True)
+    agent = models.ForeignKey(Agent, db_index=True, null=True, default=None, blank=True)
+    # agent = ChainedForeignKey(Agent,
+    #                           null=True, default=None, blank=True,
+    #                           chained_field='organization',
+    #                           chained_model_field='organization',
+    #                           show_all=False, auto_choose=True,
+    #                           db_index=True)
     fixed = models.BooleanField(_('Forced agent'), db_index=True, default=False)
 
     class Meta(object):
@@ -196,19 +196,19 @@ class Task(OrganizationObject):
 
 
 class AgentCategoryPreferences(OrganizationObject):
-    # category = models.ForeignKey(Category, db_index=True)
-    category = ChainedForeignKey(Category,
-                                 chained_field='organization',
-                                 chained_model_field='organization',
-                                 show_all=True, auto_choose=True,
-                                 db_index=True)
-    # agent = models.ForeignKey(Agent, db_index=True)
-    agent = ChainedForeignKey(Agent,
-                              null=True, default=None, blank=True,
-                              chained_field='organization',
-                              chained_model_field='organization',
-                              show_all=True, auto_choose=True,
-                              db_index=True)
+    category = models.ForeignKey(Category, db_index=True)
+    # category = ChainedForeignKey(Category,
+    #                              chained_field='organization',
+    #                              chained_model_field='organization',
+    #                              show_all=True, auto_choose=True,
+    #                              db_index=True)
+    agent = models.ForeignKey(Agent, db_index=True)
+    # agent = ChainedForeignKey(Agent,
+    #                           null=True, default=None, blank=True,
+    #                           chained_field='organization',
+    #                           chained_model_field='organization',
+    #                           show_all=True, auto_choose=True,
+    #                           db_index=True)
     affinity = models.FloatField(_('Affinity of the agent for the category.'), default=0., blank=True)
     balancing_offset = models.FloatField(_('Number of time units already done'), default=0, blank=True)
     balancing_count = models.FloatField(_('If a task of this category performed by this agent counts twice, '
@@ -231,21 +231,21 @@ class AgentCategoryPreferences(OrganizationObject):
 
 
 class AgentTaskExclusion(OrganizationObject):
-    # agent = models.ForeignKey(Agent, db_index=True)
-    agent = ChainedForeignKey(Agent,
-                              null=True, default=None, blank=True,
-                              chained_field='organization',
-                              chained_model_field='organization',
-                              show_all=True, auto_choose=True,
-                              db_index=True)
-    # task = models.ForeignKey(Task, db_index=True, verbose_name=_('Task'),
-    #                          help_text=_('Select the task that cannot be performed by the agent.'))
-    task = ChainedForeignKey(Task, verbose_name=_('Task'),
-                             null=True, default=None, blank=True,
-                             chained_field='organization',
-                             chained_model_field='organization',
-                             show_all=True, auto_choose=True,
-                             db_index=True, help_text=_('Select the task that cannot be performed by the agent.'))
+    agent = models.ForeignKey(Agent, db_index=True)
+    # agent = ChainedForeignKey(Agent,
+    #                           null=True, default=None, blank=True,
+    #                           chained_field='organization',
+    #                           chained_model_field='organization',
+    #                           show_all=True, auto_choose=True,
+    #                           db_index=True)
+    task = models.ForeignKey(Task, db_index=True, verbose_name=_('Task'),
+                             help_text=_('Select the task that cannot be performed by the agent.'))
+    # task = ChainedForeignKey(Task, verbose_name=_('Task'),
+    #                          null=True, default=None, blank=True,
+    #                          chained_field='organization',
+    #                          chained_model_field='organization',
+    #                          show_all=True, auto_choose=True,
+    #                          db_index=True, help_text=_('Select the task that cannot be performed by the agent.'))
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):

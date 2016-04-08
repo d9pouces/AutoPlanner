@@ -76,11 +76,17 @@ def organization(request, organization_pk):
         if category.balancing_mode == Category.BALANCE_NUMBER:
             for agent in scheduler.agents:
                 offset, count, __ = scheduler.preferences_by_agent_by_category[category.pk].get(agent.pk, (0., 1., 0.))
-                statistics[agent.pk][category.pk][2] = offset * count
+                if count is None:
+                    statistics[agent.pk][category.pk][2] = None
+                else:
+                    statistics[agent.pk][category.pk][2] = offset * count
         elif category.balancing_mode == Category.BALANCE_TIME:
             for agent in scheduler.agents:
                 offset, count, __ = scheduler.preferences_by_agent_by_category[category.pk].get(agent.pk, (0., 1., 0.))
-                statistics[agent.pk][category.pk][2] = datetime.timedelta(seconds=offset * count)
+                if count is None:
+                    statistics[agent.pk][category.pk][2] = None
+                else:
+                    statistics[agent.pk][category.pk][2] = datetime.timedelta(seconds=offset * count)
     for task in scheduler.tasks:
         if task.agent_id is None:
             continue
@@ -92,7 +98,11 @@ def organization(request, organization_pk):
                 continue
             __, count, __ = scheduler.preferences_by_agent_by_category[category_pk].get(task.agent_id, (0., 1., 0.))
             if scheduler.categories_by_pk[category_pk].balancing_mode == Category.BALANCE_NUMBER:
-                statistics[task.agent_id][category_pk][2] += count
+                if count is None:
+                    statistics[task.agent_id][category_pk][2] = None
+                else:
+                    statistics[task.agent_id][category_pk][2] += count
+
             elif scheduler.categories_by_pk[category_pk].balancing_mode == Category.BALANCE_TIME:
                 value = datetime.timedelta(seconds=duration.total_seconds() * count)
                 statistics[task.agent_id][category_pk][2] += value

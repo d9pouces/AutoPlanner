@@ -57,4 +57,4 @@ PIPELINE_JS = {
         'output_filename': 'js/ie9.js',
     }
 }
-DEBUG = True
+DEBUG = False
