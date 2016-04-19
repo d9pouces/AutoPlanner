@@ -9,7 +9,6 @@ from django.utils.translation import ugettext_lazy as _
 from autoplanner.models import Task, AgentCategoryPreferences, AgentTaskExclusion, MaxTaskAffectation, Category, \
     Agent, Organization, MaxTimeTaskAffectation
 
-
 __author__ = 'Matthieu Gallet'
 
 
@@ -50,7 +49,7 @@ class TaskInline(admin.TabularInline):
 
     repeat_button.allow_tags = True
     repeat_button.verbose_name = _('Repeat')
-    readonly_fields = ('repeat_button', )
+    readonly_fields = ('repeat_button',)
     fields = ('categories', 'name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button')
 
     def get_readonly_fields(self, request, obj=None):
@@ -102,26 +101,26 @@ class OrganizationAdmin(admin.ModelAdmin):
 
     schedule_button.allow_tags = True
     schedule_button.short_description = _('Compute a complete schedule')
-    readonly_fields = ('schedule_button', )
+    readonly_fields = ('schedule_button',)
     fields = ['name', 'description', 'access_token', 'admins', 'schedule_button', ]
     inlines = [AgentInline, CategoryInline, MaxTaskAffectationInline, MaxTimeTaskAffectationInline, TaskInline, ]
 
 
 class AgentCategoryPreferencesInline(admin.StackedInline):
     model = AgentCategoryPreferences
-    fields = ('category', 'agent', 'affinity', 'balancing_offset', 'balancing_count', )
+    fields = ('category', 'agent', 'affinity', 'balancing_offset', 'balancing_count',)
     classes = ['collapse', 'collapsed']
 
 
 class AgentTaskExclusionInline(admin.TabularInline):
     model = AgentTaskExclusion
-    fields = ('agent', 'task', )
+    fields = ('agent', 'task',)
 
 
 class AgentAdmin(admin.ModelAdmin):
     inlines = [AgentCategoryPreferencesInline, AgentTaskExclusionInline]
-    list_display = ('name', 'organization', 'start_time', 'end_time', )
-    list_filter = ('organization', )
+    list_display = ('name', 'organization', 'start_time', 'end_time',)
+    list_filter = ('organization',)
 
     def get_queryset(self, request):
         return self.model.query(request)
@@ -134,7 +133,6 @@ class AgentAdmin(admin.ModelAdmin):
 
 
 class TaskAdmin(admin.ModelAdmin):
-
     def get_queryset(self, request):
         return self.model.query(request)
 
@@ -146,14 +144,33 @@ class TaskAdmin(admin.ModelAdmin):
                                _('Repeat'))
         return ''
 
-    repeat_button.allow_tags = True
-    readonly_fields = ('repeat_button', )
-    repeat_button.short_description = _('Repeat')
+    def fix_agents(self, request, queryset):
+        rows_updated = queryset.exclude(agent=None).update(fixed=True)
+        if rows_updated > 1:
+            self.message_user(request, _('%(t)s tasks have been updated') % {'t': rows_updated})
+        else:
+            self.message_user(request, _('%(t)s task has been updated') % {'t': rows_updated})
 
+    fix_agents.short_description = _('Fix the agent processing the selected tasks ')
+
+    def unfix_agents(self, request, queryset):
+        rows_updated = queryset.exclude(agent=None).update(fixed=False)
+        if rows_updated > 1:
+            self.message_user(request, _('%(t)s tasks have been updated') % {'t': rows_updated})
+        else:
+            self.message_user(request, _('%(t)s task has been updated') % {'t': rows_updated})
+
+    unfix_agents.short_description = _('Unfix the agent processing the selected tasks ')
+
+    repeat_button.allow_tags = True
+    readonly_fields = ('repeat_button',)
+    repeat_button.short_description = _('Repeat')
+    actions = ['fix_agents', 'unfix_agents']
+    search_fields = ['name', ]
     fields = ['categories', 'name', 'start_time', 'end_time', 'agent', 'fixed', ]
     list_display = ['name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button', ]
     list_editable = ['start_time', 'end_time', 'agent', 'fixed']
-    list_filter = ['categories', 'agent', 'organization', 'fixed', ]
+    list_filter = ['categories', 'agent', 'organization', 'fixed', 'start_time', 'end_time', ]
 
 
 class AgentCategoryPreferencesAdmin(admin.ModelAdmin):

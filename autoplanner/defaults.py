@@ -19,6 +19,7 @@ SESSION_REDIS_DB = 10
 # celery
 ########################################################################################################################
 
+BROKER_URL = 'redis://localhost:6379/14'
 FLOOR_INSTALLED_APPS = ['autoplanner', 'smart_selects']
 FLOOR_INDEX = 'autoplanner.views.index'
 FLOOR_URL_CONF = 'autoplanner.root_urls.urls'
