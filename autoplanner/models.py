@@ -46,6 +46,8 @@ class Organization(models.Model):
 
     @classmethod
     def query(cls, request: HttpRequest, readonly=False):
+        if request.user.is_anonymous():
+            return cls.objects.filter(access_token=request.GET.get(API_KEY_VARIABLE, ''))
         if request.user.is_superuser:
             return cls.objects.all()
         if readonly:
