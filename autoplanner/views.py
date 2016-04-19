@@ -222,7 +222,7 @@ def cancel_schedule_task(request, organization_pk):
 
 
 @never_cache
-def generate_ics(request, organization_pk, agent_pk=None):
+def generate_ics(request, organization_pk, agent_pk=None, category_pk=None):
     obj = get_object_or_404(Organization.query(request, readonly=True), pk=organization_pk)
     cal = Calendar()
     cal.add('prodid', '-//AutoPlanner//19pouces.net//')
@@ -230,6 +230,8 @@ def generate_ics(request, organization_pk, agent_pk=None):
     query = Task.objects.filter(organization=obj)
     if agent_pk:
         query = query.filter(agent__id=agent_pk)
+    if category_pk:
+        query = query.filter(categories__id=category_pk)
     agents = {x.pk: x.name for x in Agent.objects.filter(organization=obj)}
     for task in query:
         event = Event()

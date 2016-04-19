@@ -27,6 +27,7 @@ def compute_schedule(self, organization_id):
                 message=_('Computation started at %(d)s, %(t)s') % {'d': date_format(start, use_l10n=True),
                                                                     't': time_format(start, use_l10n=True)})
     if count == 0:
+        print('organization not found')
         return
     organization = Organization.objects.get(pk=organization_id, celery_task_id=celery_id)
     print('schedule launched for %s' % organization)

@@ -29,7 +29,7 @@
     <h1>{{ obj.name }}</h1>
     <p>{{ description|safe }}</p>
 <table>
-    <tr><th>{% trans 'Calendar' %}</th><th>{% trans 'Agent' %}</th>{% for category in categories %}<th>{{ category }}</th>{% endfor %}</tr>
+    <tr><th>{% trans 'Calendar' %}</th><th>{% trans 'Agent' %}</th>{% for category in categories %}<th>{{ category }} <small><a href="{% url 'ical' organization_pk=obj.pk category_pk=category.pk %}?{{ api_key_variable }}={{ obj.access_token }}">{% trans 'iCal' %}</a></small></th>{% endfor %}</tr>
 {% for agent_data in statistics %}<tr>
 <td><a href="{% url 'ical' organization_pk=obj.pk agent_pk=agent_data.0.pk %}?{{ api_key_variable }}={{ obj.access_token }}">{% trans 'iCal' %}</a></td>
 {% for x in agent_data %}<td>{% if forloop.first %}<strong>{{ x }}</strong>
