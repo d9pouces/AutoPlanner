@@ -215,6 +215,8 @@ def cancel_schedule_task(request, organization_pk):
         messages.error(request, _('No computation is running on %(obj)s.') % {'obj': obj})
     else:
         app.control.revoke(obj.celery_task_id)
+        obj.celery_task_id = None
+        obj.save()
         messages.info(request, _('Computation has been interrupted.') % {'obj': obj})
     new_url = reverse('admin:%s_%s_change' % (opts.app_label, opts.model_name),
                       args=(quote(obj.pk), ), current_app=model_admin.admin_site.name)

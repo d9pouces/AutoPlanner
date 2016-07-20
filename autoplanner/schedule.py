@@ -25,7 +25,7 @@ class Scheduler(object):
         self.agents = {x for x in organization.agent_set.all()}
         self.categories = {x for x in organization.category_set.all()}
         self.categories_by_pk = {x.pk: x for x in self.categories}
-        self.tasks = {x for x in organization.task_set.all()}
+        self.tasks = {x for x in organization.task_set.all() if (x.start_time < x.end_time)}
         self.agent_category_preferences = {x for x in organization.agentcategorypreferences_set.all()}
 
         self.task_durations = {task.pk: (task.end_time - task.start_time).total_seconds()

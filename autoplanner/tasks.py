@@ -32,21 +32,24 @@ def compute_schedule(self, organization_id):
     organization = Organization.objects.get(pk=organization_id, celery_task_id=celery_id)
     print('schedule launched for %s' % organization)
     scheduler = Scheduler(organization)
-    result_list = scheduler.solve(verbose=True)
-    result_dict = scheduler.result_by_agent(result_list)
-    for agent_pk, task_pks in result_dict.items():
-        c = Task.objects.filter(pk__in=task_pks, fixed=False, organization__id=organization_id)\
-            .update(agent_id=agent_pk)
-        if c == 0:
-            print('erreur task %s agent %d' % (task_pks, agent_pk))
-    end = timezone.localtime(timezone.now())
-    print('schedule finished for %s' % organization)
-    if result_dict:
-        message = _('Computation finished at %(d)s, %(t)s') % {'d': date_format(end, use_l10n=True),
-                                                               't': time_format(end, use_l10n=True)}
-    else:
-        message = _('Unable to find a solution, maybe you should remove some constraints. '
-                    'Computation finished at %(d)s, %(t)s') % {'d': date_format(end, use_l10n=True),
-                                                               't': time_format(end, use_l10n=True)}
+    try:
+        result_list = scheduler.solve(verbose=True)
+        result_dict = scheduler.result_by_agent(result_list)
+        for agent_pk, task_pks in result_dict.items():
+            c = Task.objects.filter(pk__in=task_pks, fixed=False, organization__id=organization_id)\
+                .update(agent_id=agent_pk)
+            if c == 0:
+                print('erreur task %s agent %d' % (task_pks, agent_pk))
+        end = timezone.localtime(timezone.now())
+        print('schedule finished for %s' % organization)
+        if result_dict:
+            message = _('Computation finished at %(d)s, %(t)s') % {'d': date_format(end, use_l10n=True),
+                                                                   't': time_format(end, use_l10n=True)}
+        else:
+            message = _('Unable to find a solution, maybe you should remove some constraints. '
+                        'Computation finished at %(d)s, %(t)s') % {'d': date_format(end, use_l10n=True),
+                                                                   't': time_format(end, use_l10n=True)}
+    except Exception as e:
+        message = _('Unable to compute a schedule %(msg)s') % {'msg': e}
     Organization.objects.filter(pk=organization_id, celery_task_id=celery_id)\
         .update(celery_task_id=None, message=message)
