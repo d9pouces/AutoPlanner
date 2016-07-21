@@ -232,8 +232,8 @@ def generate_ics(request, organization_pk, agent_pk=None, category_pk=None, titl
     cal.add('version', '2.0')
     cal.add('X-PUBLISHED-TTL', 'PT' + settings.REFRESH_DURATION)
     cal.add('X-WR-TIMEZONE', settings.TIME_ZONE)
-    cal.add('X-WR-CALNAME', title or organization.name)
-    cal.add('X-WR-CALDESC', organization.description)
+    cal.add('X-WR-CALNAME', title or obj.name)
+    cal.add('X-WR-CALDESC', obj.description)
     query = Task.objects.filter(organization=obj)
     if agent_pk:
         query = query.filter(agent__id=agent_pk)
