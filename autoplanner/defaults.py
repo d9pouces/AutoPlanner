@@ -59,3 +59,4 @@ PIPELINE_JS = {
     }
 }
 DEBUG = False
+REFRESH_DURATION ='1H'

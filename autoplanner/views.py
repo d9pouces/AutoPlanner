@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+from django.conf import settings
 from django.views.decorators.cache import never_cache
 import re
 
@@ -224,11 +225,15 @@ def cancel_schedule_task(request, organization_pk):
 
 
 @never_cache
-def generate_ics(request, organization_pk, agent_pk=None, category_pk=None):
+def generate_ics(request, organization_pk, agent_pk=None, category_pk=None, title=''):
     obj = get_object_or_404(Organization.query(request, readonly=True), pk=organization_pk)
     cal = Calendar()
     cal.add('prodid', '-//AutoPlanner//19pouces.net//')
     cal.add('version', '2.0')
+    cal.add('X-PUBLISHED-TTL', 'PT' + settings.REFRESH_DURATION)
+    cal.add('X-WR-TIMEZONE', settings.TIME_ZONE)
+    cal.add('X-WR-CALNAME', title or organization.name)
+    cal.add('X-WR-CALDESC', organization.description)
     query = Task.objects.filter(organization=obj)
     if agent_pk:
         query = query.filter(agent__id=agent_pk)
