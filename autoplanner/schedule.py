@@ -294,7 +294,7 @@ class Scheduler(object):
         """ Return a schedule (if such one exists) as a list of (agent_pk, task_pk)
         :param verbose: print the result to stdout
         :param max_compute_time: max compute time
-        :param schedule_run: a ScheduleRun object to update with its process id
+        :param schedule_run: a ScheduleRun object to update with its process id (must have its "id" attribute)
         :return:
         :rtype:
         """

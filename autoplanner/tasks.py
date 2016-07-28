@@ -45,7 +45,8 @@ def compute_schedule(self, organization_id):
     schedule_run.save()
     scheduler = Scheduler(organization)
     try:
-        result_list = scheduler.solve(verbose=True, max_compute_time=organization.max_compute_time)
+        result_list = scheduler.solve(verbose=False, max_compute_time=organization.max_compute_time,
+                                      schedule_run=schedule_run)
         result_dict = scheduler.result_by_agent(result_list)
         end = timezone.localtime(timezone.now())
         selected = bool(result_dict)
@@ -112,12 +113,13 @@ def kill_schedule(self, celery_task_id):
     app.control.revoke(celery_task_id)
     all_process_ids = []
     for values in ScheduleRun.objects.filter(celery_task_id=celery_task_id).values_list('process_id'):
-        # noinspection PyBroadException
-        try:
-            os.kill(values[0], signal.SIGKILL)
-            all_process_ids.append(values[0])
-        except:
-            pass
+        if values[0]:
+            # noinspection PyBroadException
+            try:
+                os.kill(values[0], signal.SIGKILL)
+                all_process_ids.append(values[0])
+            except:
+                pass
     end = timezone.localtime(timezone.now())
     ScheduleRun.objects.filter(celery_task_id=celery_task_id, process_id__in=all_process_ids) \
         .update(process_id=None, celery_end=end)
