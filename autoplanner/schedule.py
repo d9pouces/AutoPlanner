@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 import re
-import tempfile
 import subprocess
-
+import tempfile
 from django.conf import settings
 
-from autoplanner.models import Organization, MaxTimeTaskAffectation, Task
+from autoplanner.models import Organization, MaxTimeTaskAffectation, Task, ScheduleRun
 
 __author__ = 'Matthieu Gallet'
 
@@ -253,13 +252,15 @@ class Scheduler(object):
     def affinity_variable():
         return 'a'
 
-    def solve(self, verbose=False):
+    def solve(self, verbose=False, max_compute_time=None, schedule_run=None):
         """ Return a schedule (if such one exists) as a list of (agent_pk, task_pk)
-        :param verbose:
-        :type verbose:
+        :param verbose: print the result to stdout
+        :param max_compute_time: max compute time
         :return:
         :rtype:
         """
+        if max_compute_time is not None and max_compute_time <= 0:
+            max_compute_time = None
         with tempfile.NamedTemporaryFile() as fd:
             for constraint in self.constraints():
                 if verbose:
@@ -268,7 +269,11 @@ class Scheduler(object):
             fd.flush()
             p = subprocess.Popen([settings.LP_SOLVE_PATH, '-lp', fd.name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
-            std_out, std_err = p.communicate()
+            if schedule_run:
+                ScheduleRun.objects.filter(pk=schedule_run.pk).update(process_id=p.pid)
+            std_out, std_err = p.communicate(timeout=max_compute_time)
+            if schedule_run:
+                ScheduleRun.objects.filter(pk=schedule_run.pk).update(process_id=None)
         if verbose:
             print(std_out.decode())
             print(std_err.decode())

@@ -7,7 +7,7 @@ from django.utils.html import format_html
 from django.utils.translation import ugettext_lazy as _
 
 from autoplanner.models import Task, AgentCategoryPreferences, AgentTaskExclusion, MaxTaskAffectation, Category, \
-    Agent, Organization, MaxTimeTaskAffectation
+    Agent, Organization, MaxTimeTaskAffectation, ScheduleRun
 
 __author__ = 'Matthieu Gallet'
 
@@ -68,6 +68,24 @@ class MaxTaskAffectationInline(admin.TabularInline):
     classes = ['collapse', 'collapsed']
 
 
+class ScheduleRunInline(admin.TabularInline):
+    model = ScheduleRun
+    classes = ['collapse', 'collapsed']
+
+    @staticmethod
+    def apply_schedule_run_button(obj):
+        if obj and obj.pk:
+            return format_html('<a href="{}" class="button default">{}</a>',
+                               reverse('multiply_task', kwargs={'task_pk': obj.pk}),
+                               _('Repeat'))
+        return ''
+
+    apply_schedule_run_button.allow_tags = True
+    apply_schedule_run_button.verbose_name = _('Reload this schedule')
+    readonly_fields = ['success', 'message', 'celery_start', 'celery_end', 'apply_schedule_run_button']
+    fields = ['success', 'message', 'celery_start', 'celery_end', 'apply_schedule_run_button']
+
+
 class MaxTimeTaskAffectationInline(admin.TabularInline):
     model = MaxTimeTaskAffectation
     classes = ['collapse', 'collapsed']
@@ -103,7 +121,8 @@ class OrganizationAdmin(admin.ModelAdmin):
     schedule_button.short_description = _('Compute a complete schedule')
     readonly_fields = ('schedule_button',)
     fields = ['name', 'description', 'access_token', 'admins', 'schedule_button', ]
-    inlines = [AgentInline, CategoryInline, MaxTaskAffectationInline, MaxTimeTaskAffectationInline, TaskInline, ]
+    inlines = [ScheduleRunInline, AgentInline, CategoryInline, MaxTaskAffectationInline, MaxTimeTaskAffectationInline,
+               TaskInline, ]
 
 
 class AgentCategoryPreferencesInline(admin.StackedInline):

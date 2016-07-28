@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import datetime
+import json
 from django.conf import settings
+from django.utils.formats import date_format
+from django.utils.formats import time_format
 from django.views.decorators.cache import never_cache
 import re
 
@@ -21,9 +24,9 @@ import markdown
 
 from autoplanner.admin import OrganizationAdmin
 from autoplanner.forms import MultiplyTaskForm
-from autoplanner.models import Organization, Task, Category, Agent, API_KEY_VARIABLE
+from autoplanner.models import Organization, Task, Category, Agent, API_KEY_VARIABLE, ScheduleRun
 from autoplanner.schedule import Scheduler
-from autoplanner.tasks import compute_schedule
+from autoplanner.tasks import compute_schedule, kill_schedule, apply_schedule
 
 __author__ = 'Matthieu Gallet'
 
@@ -205,6 +208,29 @@ def schedule_task(request, organization_pk):
 
 
 @never_cache
+def apply_schedule_run(request, schedule_run_pk):
+    obj = get_object_or_404(ScheduleRun, pk=schedule_run_pk)
+    get_object_or_404(Organization.query(request), pk=obj.organization_id)  # only used to check rights
+    # required to get the URL of the "administration change page"
+    # noinspection PyProtectedMember
+    model_admin = admin.site._registry[Organization]
+    assert isinstance(model_admin, OrganizationAdmin)
+    # noinspection PyProtectedMember
+    opts = model_admin.model._meta
+
+    result_dict = json.loads(obj.result_dict)
+    end = obj.celery_end
+    d = '%(d)s, %(t)s' % {'d': date_format(end, use_l10n=True), 't': time_format(end, use_l10n=True)}
+    if not result_dict:
+        messages.error(request, _('Unable to apply the invalid schedule "%(d)s".') % {'d': d})
+    else:
+        apply_schedule(obj.organization_id, result_dict)
+        messages.success(request, _('Schedule "%(d)s" has been applied.') % {'d': d})
+    new_url = reverse('admin:%s_%s_change' % (opts.app_label, opts.model_name),
+                      args=(quote(obj.pk), ), current_app=model_admin.admin_site.name)
+    return HttpResponseRedirect(new_url)
+
+@never_cache
 def cancel_schedule_task(request, organization_pk):
     obj = get_object_or_404(Organization.query(request), pk=organization_pk)
     # noinspection PyProtectedMember
@@ -215,9 +241,7 @@ def cancel_schedule_task(request, organization_pk):
     if obj.celery_task_id is None:
         messages.error(request, _('No computation is running on %(obj)s.') % {'obj': obj})
     else:
-        app.control.revoke(obj.celery_task_id)
-        obj.celery_task_id = None
-        obj.save()
+        kill_schedule.delay(obj.celery_task_id)
         messages.info(request, _('Computation has been interrupted.') % {'obj': obj})
     new_url = reverse('admin:%s_%s_change' % (opts.app_label, opts.model_name),
                       args=(quote(obj.pk), ), current_app=model_admin.admin_site.name)
