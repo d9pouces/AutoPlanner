@@ -199,6 +199,44 @@ class Scheduler(object):
                                             self.category_variable(category_pk), category.balancing_tolerance * count)
                 )
 
+    def compute_balancing(self, result_list):
+        """Return a dict
+        :return {category.pk: (name, mode, max_value_among_all_agents - min_value_among_all_agents)}"""
+        balances = {}
+
+        result_dict = {}
+        for agent_pk, task_pk in result_list:
+            print(agent_pk, task_pk)
+            result_dict.setdefault(agent_pk, set()).add(task_pk)
+
+        def is_affected_to(agent_pk_, task_pk_):
+            return 1 if (agent_pk_ in result_dict and task_pk_ in result_dict[agent_pk_]) else 0
+
+        for category in self.categories:
+            if category.balancing_mode is None or category.balancing_tolerance is None:
+                continue
+            category_pk = category.pk
+            cat_task_pks = [task.pk for task in self.tasks_by_category[category_pk]]
+            cat_agent_pks = self.agent_pks - self.agent_exclusions_by_category[category_pk]
+            cat_min = None
+            cat_max = None
+            for agent_pk in cat_agent_pks:
+                agent_preferences = self.preferences_by_agent_by_category[category_pk].get(agent_pk, (0, 1., 0.))
+                if category.balancing_mode == category.BALANCE_NUMBER:
+                    ag_sum = sum((agent_preferences[1] * is_affected_to(agent_pk, task_pk)) for task_pk in cat_task_pks)
+                else:
+                    ag_sum = sum((agent_preferences[1] * self.task_durations[task_pk] *
+                                  is_affected_to(agent_pk, task_pk)) for task_pk in cat_task_pks)
+                ag_offset = agent_preferences[0] * agent_preferences[1]
+                ag_total = ag_sum + ag_offset
+                if cat_min is None or cat_min > ag_total:
+                    cat_min = ag_total
+                if cat_max is None or cat_max < ag_total:
+                    cat_max = ag_total
+            if cat_min is not None:
+                balances[category_pk] = (category.name, category.balancing_mode, cat_max - cat_min)
+        return balances
+
     def apply_affinity_constraints(self):
         variables = []
         for category in self.categories:
@@ -256,6 +294,7 @@ class Scheduler(object):
         """ Return a schedule (if such one exists) as a list of (agent_pk, task_pk)
         :param verbose: print the result to stdout
         :param max_compute_time: max compute time
+        :param schedule_run: a ScheduleRun object to update with its process id
         :return:
         :rtype:
         """

@@ -210,7 +210,8 @@ def schedule_task(request, organization_pk):
 @never_cache
 def apply_schedule_run(request, schedule_run_pk):
     obj = get_object_or_404(ScheduleRun, pk=schedule_run_pk)
-    get_object_or_404(Organization.query(request), pk=obj.organization_id)  # only used to check rights
+    organization_id = obj.organization_id
+    get_object_or_404(Organization.query(request), pk=organization_id)  # only used to check rights
     # required to get the URL of the "administration change page"
     # noinspection PyProtectedMember
     model_admin = admin.site._registry[Organization]
@@ -224,11 +225,20 @@ def apply_schedule_run(request, schedule_run_pk):
     if not result_dict:
         messages.error(request, _('Unable to apply the invalid schedule "%(d)s".') % {'d': d})
     else:
-        apply_schedule(obj.organization_id, result_dict)
-        messages.success(request, _('Schedule "%(d)s" has been applied.') % {'d': d})
+        try:
+            apply_schedule(organization_id, result_dict)
+            Organization.objects.filter(pk=organization_id).update(current_schedule=obj.pk)
+            ScheduleRun.objects.filter(organization__id=organization_id).exclude(pk=schedule_run_pk)\
+                .update(is_selected=False)
+            ScheduleRun.objects.filter(pk=schedule_run_pk).update(is_selected=True)
+            messages.success(request, _('Schedule "%(d)s" has been applied.') % {'d': d})
+        except ValueError as e:
+            messages.error(request, _('Unable to apply the invalid schedule "%(d)s": %(e)s.') % {'d': d, 'e': e})
+
     new_url = reverse('admin:%s_%s_change' % (opts.app_label, opts.model_name),
-                      args=(quote(obj.pk), ), current_app=model_admin.admin_site.name)
+                      args=(quote(organization_id),), current_app=model_admin.admin_site.name)
     return HttpResponseRedirect(new_url)
+
 
 @never_cache
 def cancel_schedule_task(request, organization_pk):

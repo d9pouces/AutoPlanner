@@ -40,22 +40,22 @@ class TaskInline(admin.TabularInline):
     classes = ['collapse', 'collapsed']
 
     @staticmethod
-    def repeat_button(obj):
+    def repeat(obj):
         if obj and obj.pk:
             return format_html('<a href="{}" class="button default">{}</a>',
                                reverse('multiply_task', kwargs={'task_pk': obj.pk}),
                                _('Repeat'))
         return ''
 
-    repeat_button.allow_tags = True
-    repeat_button.verbose_name = _('Repeat')
-    readonly_fields = ('repeat_button',)
-    fields = ('categories', 'name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button')
+    repeat.allow_tags = True
+    repeat.verbose_name = _('Repeat')
+    readonly_fields = ('repeat',)
+    fields = ('categories', 'name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat')
 
     def get_readonly_fields(self, request, obj=None):
         if request.GET.get('readonly'):
-            return ['categories', 'name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button', ]
-        return ['repeat_button', ]
+            return ['categories', 'name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat', ]
+        return ['repeat', ]
 
     def get_extra(self, request, obj=None, **kwargs):
         if request.GET.get('readonly'):
@@ -73,17 +73,26 @@ class ScheduleRunInline(admin.TabularInline):
     classes = ['collapse', 'collapsed']
 
     @staticmethod
-    def apply_schedule_run_button(obj):
-        if obj and obj.pk:
+    def apply(obj):
+        if obj and obj.pk and obj.status:
+            if obj.is_selected:
+                return format_html('<span class="button default" style="background-color: #0B6138;">{}</span>',
+                                   _('Current schedule'))
             return format_html('<a href="{}" class="button default">{}</a>',
-                               reverse('multiply_task', kwargs={'task_pk': obj.pk}),
-                               _('Repeat'))
+                               reverse('apply_schedule_run', kwargs={'schedule_run_pk': obj.pk}),
+                               _('Select this schedule'))
         return ''
+    extra = 0
+    apply.allow_tags = True
+    apply.verbose_name = _('Reload this schedule')
+    readonly_fields = ['status', 'message', 'celery_start', 'celery_end', 'apply']
+    fields = ['status', 'message', 'celery_start', 'celery_end', 'apply']
 
-    apply_schedule_run_button.allow_tags = True
-    apply_schedule_run_button.verbose_name = _('Reload this schedule')
-    readonly_fields = ['success', 'message', 'celery_start', 'celery_end', 'apply_schedule_run_button']
-    fields = ['success', 'message', 'celery_start', 'celery_end', 'apply_schedule_run_button']
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class MaxTimeTaskAffectationInline(admin.TabularInline):
@@ -107,11 +116,11 @@ class OrganizationAdmin(admin.ModelAdmin):
             if not obj.celery_task_id:
                 return format_html('<a href="{}" class="button default">{}</a>',
                                    reverse('schedule_start', kwargs={'organization_pk': obj.pk}),
-                                   _('Schedule it!'))
+                                   _('Compute a new schedule!'))
             else:
                 return format_html('<a href="{}" class="button default">{}</a>',
                                    reverse('cancel_schedule', kwargs={'organization_pk': obj.pk}),
-                                   _('Cancel the schedule'))
+                                   _('Cancel the currently running schedule'))
         return ''
 
     def get_queryset(self, request):
@@ -120,7 +129,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     schedule_button.allow_tags = True
     schedule_button.short_description = _('Compute a complete schedule')
     readonly_fields = ('schedule_button',)
-    fields = ['name', 'description', 'access_token', 'admins', 'schedule_button', ]
+    fields = ['name', 'description', 'access_token', 'admins', 'schedule_button', 'max_compute_time', ]
     inlines = [ScheduleRunInline, AgentInline, CategoryInline, MaxTaskAffectationInline, MaxTimeTaskAffectationInline,
                TaskInline, ]
 

@@ -4,9 +4,10 @@ import random
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.utils.text import force_text
 
 from django.http import HttpRequest
-from django.utils.formats import date_format
+from django.utils.formats import date_format, time_format
 from django.utils.timezone import LocalTimezone
 from django.utils.translation import ugettext_lazy as _
 from django.db import models
@@ -46,6 +47,8 @@ class Organization(models.Model):
                                                    default=None, blank=True, null=True,
                                                    help_text=_('Leave it blank if you do not want to set a limit'))
     admins = models.ManyToManyField(settings.AUTH_USER_MODEL, db_index=True, verbose_name=_('Administrators'))
+    current_schedule = models.ForeignKey('ScheduleRun', default=None, blank=True, null=True, db_index=True,
+                                         related_name='current_organizations')
 
     @classmethod
     def query(cls, request: HttpRequest, readonly=False):
@@ -67,14 +70,24 @@ class Organization(models.Model):
 
 class ScheduleRun(models.Model):
     organization = models.ForeignKey(Organization, db_index=True)
-    status = models.NullBooleanField(_('Success?'), db_index=True, default=None)
-    message = models.TextField(_('Result message'), max_length=500, default='', blank=True)
+    status = models.NullBooleanField(_('Is valid?'), db_index=True, default=None)
+    is_selected = models.BooleanField(_('Selected?'), db_index=True, default=False)
+    message = models.TextField(_('Result'), max_length=500, default='', blank=True)
     celery_task_id = models.CharField(_('Celery task id'), db_index=True, max_length=20, blank=True, null=True,
                                       default=None)
-    celery_start = models.DateTimeField(_('Celery start'), null=True, blank=True, default=None)
-    celery_end = models.DateTimeField(_('Celery end'), null=True, blank=True, default=None)
+    celery_start = models.DateTimeField(_('Computation start'), null=True, blank=True, default=None)
+    celery_end = models.DateTimeField(_('Computation end'), null=True, blank=True, default=None)
     process_id = models.IntegerField(_('Process ID'), db_index=True, blank=True, null=True, default=None)
     result_dict = models.TextField(_('JSON-serialized result'), blank=True, default=None, null=True)
+
+    def __str__(self):
+        end = self.celery_end
+        if not end:
+            return force_text(_('Not finished yet.'))
+        return '%(d)s, %(t)s' % {'d': date_format(end, use_l10n=True), 't': time_format(end, use_l10n=True)}
+
+    def __unicode__(self):
+        return self.__str__()
 
 
 class OrganizationObject(models.Model):

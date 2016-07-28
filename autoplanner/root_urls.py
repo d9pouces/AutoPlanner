@@ -29,6 +29,8 @@ urlpatterns = [url(r'^accounts/', include('allauth.urls')),
                url('^org/ical/(?P<organization_pk>\d+)/cat/(?P<category_pk>\d+)/(?P<title>.*)\.ics',
                    views.generate_ics, name='ical'),
                url('^tasks/multiply/(?P<task_pk>\d+)\.html', views.multiply_task, name='multiply_task'),
+               url('^tasks/apply_schedule_run/(?P<schedule_run_pk>\d+)\.html', views.apply_schedule_run,
+                   name='apply_schedule_run'),
                url(r'^chaining/', include('smart_selects.urls')),
                url(r'^', include(admin.site.urls)),
                ]
