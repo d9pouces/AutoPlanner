@@ -1,6 +1,11 @@
 AutoPlanner
 ===========
 
+Explications :
+
+  * pas de  
+
+
   * génération d'un .ics global et d'ICS pour chaque personne
   * afficher un calendrier
   * statistiques par personne et par catégorie (# événements et temps total)
@@ -18,8 +23,6 @@ appnope==0.1.0
 -e git+https://github.com/d9pouces/AutoPlanner.git@d918eb6c307714815649abb1bed99bce951a901b#egg=autoplanner
 billiard==3.3.0.22
 celery==3.1.20
-decorator==4.0.9
-defusedxml==0.4.1
 Django==1.9.2
 django-allauth==0.24.1
 django-bootstrap3==6.2.2
@@ -29,12 +32,9 @@ django-redis==4.3.0
 django-redis-cache==1.6.5
 django-smart-selects==1.2.2
 -e git+https://github.com/d9pouces/django-floor.git@fe9557dff5dc28dd948f05637117420d1a903d80#egg=djangofloor
-docutils==0.12
 funcsigs==0.4
 gunicorn==19.4.5
 icalendar==3.9.2
-ipython==4.1.1
-ipython-genutils==0.1.0
 kombu==3.0.33
 Markdown==2.6.5
 MarkupSafe==0.23
@@ -48,5 +48,3 @@ python3-openid==3.0.9
 pytz==2015.7
 redis==2.10.5
 requests==2.9.1
-requests-oauthlib==0.6.1
-simplegeneric==0.8.1
