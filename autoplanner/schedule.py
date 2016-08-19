@@ -306,7 +306,10 @@ class Scheduler(object):
                     print(constraint)
                 fd.write(('%s;\n' % constraint).encode())
             fd.flush()
-            p = subprocess.Popen([settings.LP_SOLVE_PATH, '-lp', fd.name], stdout=subprocess.PIPE,
+            cmd = [settings.LP_SOLVE_PATH, '-lp', fd.name]
+            if max_compute_time:
+                cmd += ['-timeout', str(max_compute_time)]
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             if schedule_run:
                 ScheduleRun.objects.filter(pk=schedule_run.pk).update(process_id=p.pid)
