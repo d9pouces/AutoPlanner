@@ -24,8 +24,8 @@ Here is the complete list of settings:
   redis_port = 6379
   # port of your Redis database
   [database]
-  engine = django.db.backends.postgresql_psycopg2
-  # SQL database engine, can be 'django.db.backends.[postgresql_psycopg2|mysql|sqlite3|oracle]'.
+  engine = django.db.backends.postgresql
+  # SQL database engine, can be 'django.db.backends.[postgresql|mysql|sqlite3|oracle]'.
   host = localhost
   # Empty for localhost through domain sockets or "127.0.0.1" for localhost + TCP
   name = autoplanner

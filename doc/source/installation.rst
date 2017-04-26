@@ -195,7 +195,7 @@ Now, it's time to install AutoPlanner:
     redis_host = localhost
     redis_port = 6379
     [database]
-    engine = django.db.backends.postgresql_psycopg2
+    engine = django.db.backends.postgresql
     host = localhost
     name = autoplanner
     password = 5trongp4ssw0rd
