@@ -16,7 +16,7 @@ for line in codecs.open(os.path.join('autoplanner', '__init__.py'), 'r', encodin
 with codecs.open(os.path.join(os.path.dirname(__file__), 'README.md'), encoding='utf-8') as fd:
     long_description = fd.read()
 
-entry_points = {'console_scripts': ['autoplanner-manage = djangofloor.scripts:manage',
+entry_points = {'console_scripts': ['autoplanner-manage = djangofloor.scripts:django',
                                     'autoplanner-celery = djangofloor.scripts:celery',
                                     'autoplanner-gunicorn = djangofloor.scripts:gunicorn']}
 

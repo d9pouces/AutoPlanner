@@ -2,6 +2,7 @@
 import datetime
 import json
 from django.conf import settings
+from django.template.response import TemplateResponse
 from django.utils.formats import date_format
 from django.utils.formats import time_format
 from django.views.decorators.cache import never_cache
@@ -13,12 +14,13 @@ from django.contrib.admin.options import TO_FIELD_VAR
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.contrib import messages
 from django.contrib.admin.utils import quote
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http.response import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.utils.translation import ugettext_lazy as _
 from djangofloor.celery import app
+from djangofloor.tasks import set_websocket_topics
 from icalendar import Calendar, Event
 import markdown
 
@@ -286,3 +288,14 @@ def generate_ics(request, organization_pk, agent_pk=None, category_pk=None, titl
         event['uid'] = task.start_time.strftime('%Y%m%dT%H%M%S-') + str(task.pk)
         cal.add_component(event)
     return HttpResponse(cal.to_ical(), content_type='text/calendar')
+
+
+def index(request):
+    pass
+
+
+def organization_index(request, organization_pk):
+    obj = get_object_or_404(Organization.query(request), pk=organization_pk)
+    set_websocket_topics(request, obj)
+    template_values = {'organization': obj}
+    return TemplateResponse(request, 'autoplanner/organization_index.html', context=template_values)

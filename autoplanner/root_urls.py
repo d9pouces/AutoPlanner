@@ -14,9 +14,9 @@ from autoplanner import views
 __author__ = 'Matthieu Gallet'
 load_celery()
 admin.autodiscover()
+admin_urls = admin.site.urls
 
-urlpatterns = [url(r'^accounts/', include('allauth.urls')),
-               url(r'^jsi18n/$', javascript_catalog, {'packages': ('djangofloor', 'django.contrib.admin', ), }),
+urlpatterns = [url(r'^jsi18n/$', javascript_catalog, {'packages': ('djangofloor', 'django.contrib.admin', ), }),
                url(r'^' + settings.MEDIA_URL[1:] + '(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
                url(r'^' + settings.STATIC_URL[1:] + '(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
                url(r'^robots\.txt$', robots),
@@ -32,10 +32,11 @@ urlpatterns = [url(r'^accounts/', include('allauth.urls')),
                url('^tasks/apply_schedule_run/(?P<schedule_run_pk>\d+)\.html', views.apply_schedule_run,
                    name='apply_schedule_run'),
                url(r'^chaining/', include('smart_selects.urls')),
-               url(r'^', include(admin.site.urls)),
+               url(r'^', include(admin_urls[:2])),
+               url(r'^organization/(?P<organization_pk>\d+)/$', views.organization_index, name='organization_index'),
+               url(r'^$', views.index, name='index'),
                ]
 
-if settings.DEBUG:
+if settings.DEBUG and settings.USE_DEBUG_TOOLBAR:
     import debug_toolbar
-
     urlpatterns += [url(r'^__debug__/', include(debug_toolbar.urls)), ]
