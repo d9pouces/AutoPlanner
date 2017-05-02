@@ -1,0 +1,40 @@
+{% load i18n djangofloor bootstrap3 %}
+<p>{% blocktrans %}To ensure that two overlapping tasks are affected to different resources, they must belong to the
+    same category.
+    {% endblocktrans %}</p>
+
+<table class="table table-stripped">
+    {% for category in categories %}
+    <tr>
+        <form role="form">
+            <td style="width: 20px;">
+                <i class="fa" id="check_category_{{ category.id }}"></i>
+            </td>
+            <td>
+                <input type="text" class="form-control" id="id_name_{{ category.id }}" name="name"
+                       onchange="$('#check_category_{{ category.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_name', {organization_pk: {{ organization.id }}, category_pk: {{ category.id }}, value: $(this).serializeArray()})"
+                       value="{{ category.name }}">
+            </td>
+            <td>
+                <select class="form-control" id="id_balancing_mode_{{ category.id }}" name="balancing_mode"
+                        onchange="$('#check_category_{{ category.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_balancing_mode', {organization_pk: {{ organization.id }}, category_pk: {{ category.id }}, value: $(this).serializeArray()})">
+                    {% for x in balancing_modes %}
+                    <option value{% if x.0 %}="{{ x.0 }}"{% endif %} {% if category.balancing_mode == x.0 %}selected="selected"{% endif %}>{{ x.1 }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td><input type="number" class="form-control {% if not category.balancing_mode %}hidden{% endif %}" id="id_balancing_tolerance_{{ category.id }}"
+                       name="balancing_tolerance"
+                       onchange="$('#check_category_{{ category.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_balancing_tolerance', {organization_pk: {{ organization.id }}, category_pk: {{ category.id }}, value: $(this).serializeArray()})" value="{% if category.balancing_tolerance %}{{ category.balancing_tolerance|str }}{% endif %}">
+            </td>
+
+            <td>
+                <input type="number" class="form-control" id="id_auto_affinity_{{ category.id }}"
+                       name="auto_affinity"
+                       onchange="$('#check_category_{{ category.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_auto_affinity', {organization_pk: {{ organization.id }}, category_pk: {{ category.id }}, value: $(this).serializeArray()})" value="{{ category.auto_affinity|str }}">
+            </td>
+        </form>
+    </tr>
+    {% endfor %}
+</table>
+

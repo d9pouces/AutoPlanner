@@ -54,6 +54,7 @@ class Organization(models.Model):
 
     @classmethod
     def query(cls, request: HttpRequest, readonly=False):
+        return cls.objects.all()
         # noinspection PyUnresolvedReferences
         if request.user.is_anonymous:
             return cls.objects.filter(access_token=request.GET.get(API_KEY_VARIABLE, ''))
