@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm
-from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class
+from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER
+from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before
+from djangofloor.wsgi.window_info import render_to_string
 
 from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTokenForm, OrganizationMaxComputeTimeForm, \
-    CategoryFormSet, CategoryForm, CategoryNameForm, CategoryBalancingModeForm, CategoryBalancingToleranceForm, \
-    CategoryAutoAffinityForm
+    CategoryNameForm, CategoryBalancingModeForm, CategoryBalancingToleranceForm, \
+    CategoryAutoAffinityForm, CategoryAddForm
 from autoplanner.models import Organization, default_token, Category
 
 __author__ = 'Matthieu Gallet'
@@ -28,7 +30,7 @@ def change_tab_categories(window_info, organization):
     # noinspection PyProtectedMember
     balancing_modes = Category._meta.get_field('balancing_mode').choices
     context = {'organization': organization, 'categories': queryset,
-               'balancing_modes': balancing_modes}
+               'balancing_modes': balancing_modes, 'new_category': Category()}
     render_to_client(window_info, 'autoplanner/tabs/categories.html', context, '#categories')
 
 
@@ -78,18 +80,27 @@ def set_category_name(window_info, organization_pk: int, category_pk: int, value
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_balancing_mode')
-def set_category_balancing_mode(window_info, organization_pk: int, category_pk: int,
-                                value: SerializedForm(CategoryBalancingModeForm)):
+def set_category_balancing_mode(window_info, organization_pk: int,
+                                value: SerializedForm(CategoryBalancingModeForm), category_pk: int=None):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
         balancing_mode = value.cleaned_data['balancing_mode']
-        Category.objects.filter(organization__id=organization_pk, pk=category_pk)\
-            .update(balancing_mode=balancing_mode or None)
+        if category_pk:
+            Category.objects.filter(organization__id=organization_pk, pk=category_pk)\
+                .update(balancing_mode=balancing_mode or None)
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-check')
         if balancing_mode:
             remove_class(window_info, '#id_balancing_tolerance_%s' % category_pk, 'hidden')
+            if balancing_mode == Category.BALANCE_TIME:
+                remove_class(window_info, '#time_balancing_tolerance_%s' % category_pk, 'hidden')
+                add_class(window_info, '#units_balancing_tolerance_%s' % category_pk, 'hidden')
+            else:
+                add_class(window_info, '#time_balancing_tolerance_%s' % category_pk, 'hidden')
+                remove_class(window_info, '#units_balancing_tolerance_%s' % category_pk, 'hidden')
         else:
             add_class(window_info, '#id_balancing_tolerance_%s' % category_pk, 'hidden')
+            add_class(window_info, '#time_balancing_tolerance_%s' % category_pk, 'hidden')
+            add_class(window_info, '#units_balancing_tolerance_%s' % category_pk, 'hidden')
     elif value:
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-remove')
 
@@ -121,5 +132,28 @@ def set_category_auto_affinity(window_info, organization_pk: int, category_pk: i
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_category')
-def add_category(window_info, organization_pk: int, value: SerializedForm(CategoryForm)):
-    pass
+def add_category(window_info, organization_pk: int, value: SerializedForm(CategoryAddForm)):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    can_update = organization is not None
+    if can_update and value and value.is_valid():
+        # noinspection PyProtectedMember
+        balancing_modes = Category._meta.get_field('balancing_mode').choices
+        category = Category(organization_id=organization_pk, name=value.cleaned_data['name'],
+                            balancing_mode=value.cleaned_data['balancing_mode'],
+                            balancing_tolerance=value.cleaned_data['balancing_tolerance'],
+                            auto_affinity=value.cleaned_data['auto_affinity'])
+        category.save()
+        context = {'organization': organization, 'balancing_modes': balancing_modes, 'category': category}
+        content_str = render_to_string('autoplanner/include/category.html', context=context, window_info=window_info)
+        before(window_info, '#row_category_None', content_str)
+    elif value and not value.is_valid():
+        notify(window_info, value.errors, style=NOTIFICATION, level=DANGER)
+    add_attribute(window_info, '#check_category_None', 'class', 'fa')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_category')
+def remove_category(window_info, organization_pk: int, category_pk: int):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update:
+        Category.objects.filter(organization__id=organization_pk, id=category_pk).delete()
+        remove(window_info, '#row_category_%s' % category_pk)

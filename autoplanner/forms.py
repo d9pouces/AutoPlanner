@@ -33,7 +33,7 @@ class OrganizationMaxComputeTimeForm(forms.Form):
 
 
 class CategoryNameForm(forms.Form):
-    name = forms.CharField(label=_('Name'), max_length=500)
+    name = forms.CharField(label=_('Name'), max_length=500, min_length=1)
 
 
 class CategoryBalancingModeForm(forms.Form):
@@ -53,10 +53,16 @@ class CategoryAutoAffinityForm(forms.Form):
                                              'to the same agent'))
 
 
-class CategoryForm(forms.ModelForm):
-    class Meta:
-        model = Category
-        fields = ['name', 'balancing_mode', 'balancing_tolerance', 'auto_affinity']
+class CategoryAddForm(forms.Form):
+    name = forms.CharField(label=_('Name'), max_length=500, min_length=1)
+    balancing_mode = forms.ChoiceField(label=_('Balancing mode'), required=False,
+                                       choices=((None, _('No balancing')),
+                                                (Category.BALANCE_TIME, _('Total task time')),
+                                                (Category.BALANCE_NUMBER, _('Total task number'))))
+    balancing_tolerance = forms.FloatField(label=_('Tolerance while balancing tasks across resources'),
+                                           required=False)
+    auto_affinity = forms.FloatField(label=_('Affinity for allocating successive tasks of the same category '
+                                             'to the same agent'))
 
 
 CategoryFormSet = modelformset_factory(Category,

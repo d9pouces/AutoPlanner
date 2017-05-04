@@ -43,8 +43,6 @@
 <script type="application/javascript">
     $(function () {
         $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-        console.info(e);
-        console.info(e.target.id.substr(2));
             $.df.call('autoplanner.change_tab', {organization_pk: {{ organization.id }}, tab_name: e.target.id.substr(2)});
         });
         $('#global_tabs a:first').tab('show')
