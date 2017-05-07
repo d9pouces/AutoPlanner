@@ -1,43 +1,43 @@
 {% load i18n djangofloor bootstrap3 autoplanner %}
-<tr id="row_category_{{ category.id }}"><form role="form" {% if category.balancing_tolerance is None %}onsubmit="$('#check_category_{{ category.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_category', {organization_pk: {{ organization.id }}, value: $(this).serializeArray()})"{% endif %}>
+<tr id="row_category_{{ obj.id }}"><form role="form" {% if obj.id is None %}onsubmit="$('#check_category_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_category', {organization_pk: {{ organization.id }}, value: $(this).serializeArray()})"{% endif %}>
     <td style="width: 20px;">
-        <i class="fa" id="check_category_{{ category.id }}"></i>
+        <i class="fa" id="check_category_{{ obj.id }}"></i>
     </td>
     <td>
-        <input type="text" class="form-control" id="id_name_{{ category.id }}" name="name"
-               {% if category.id %}onchange="$('#check_category_{{ category.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_name', {organization_pk: {{ organization.id }}, category_pk: {{ category.id }}, value: $(this).serializeArray()})"{% endif %}
-               value="{{ category.name }}">
+        <input type="text" class="form-control" id="id_name_{{ obj.id }}" name="name"
+               {% if obj.id %}onchange="$('#check_category_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_name', {organization_pk: {{ organization.id }}, category_pk: {{ obj.id }}, value: $(this).serializeArray()})"{% endif %}
+               value="{{ obj.name }}">
     </td>
     <td>
-        <select class="form-control" id="id_balancing_mode_{{ category.id }}" name="balancing_mode"
-                onchange="$('#check_category_{{ category.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_balancing_mode', {organization_pk: {{ organization.id }}{% if category.id %}, category_pk: {{ category.id }}{% endif %}, value: $(this).serializeArray()})">
+        <select class="form-control" id="id_balancing_mode_{{ obj.id }}" name="balancing_mode"
+                onchange="$('#check_category_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_balancing_mode', {organization_pk: {{ organization.id }}{% if obj.id %}, category_pk: {{ obj.id }}{% endif %}, value: $(this).serializeArray()})">
             {% for x in balancing_modes %}
-            <option value{% if x.0 %}="{{ x.0 }}" {% endif %} {% if category.balancing_mode == x.0 %}selected="selected" {% endif %}>{{ x.1 }}
+            <option value{% if x.0 %}="{{ x.0 }}" {% endif %} {% if obj.balancing_mode == x.0 %}selected="selected" {% endif %}>{{ x.1 }}
             </option>
             {% endfor %}
         </select>
     </td>
-    <td><input type="number" class="form-control {% if not category.balancing_mode %}hidden{% endif %}"
-               id="id_balancing_tolerance_{{ category.id }}"
+    <td><input type="number" class="form-control {% if not obj.balancing_mode %}hidden{% endif %}"
+               id="id_balancing_tolerance_{{ obj.id }}"
                name="balancing_tolerance"
-               {% if category.id %}onchange="$('#check_category_{{ category.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_balancing_tolerance', {organization_pk: {{ organization.id }}, category_pk: {{ category.id }}, value: $(this).serializeArray()})"{% endif %}
-               value="{% if category.balancing_tolerance is not None %}{{ category.balancing_tolerance|my_simple_str }}{% endif %}">
-    <span class="{% if category.balancing_mode != 'time' %}hidden{% endif %}"
-               id="time_balancing_tolerance_{{ category.id }}">{% trans '(seconds)' %}</span>
-    <span class="{% if category.balancing_mode != 'number' %}hidden{% endif %}"
-               id="units_balancing_tolerance_{{ category.id }}">{% trans '(tasks)' %}</span>
+               {% if obj.id %}onchange="$('#check_category_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_balancing_tolerance', {organization_pk: {{ organization.id }}, category_pk: {{ obj.id }}, value: $(this).serializeArray()})"{% endif %}
+               value="{% if obj.balancing_tolerance is not None %}{{ obj.balancing_tolerance|my_simple_str }}{% endif %}">
+    <span class="{% if obj.balancing_mode != obj.BALANCE_TIME %}hidden{% endif %}"
+               id="time_balancing_tolerance_{{ obj.id }}">{% trans '(in seconds)' %}</span>
+    <span class="{% if obj.balancing_mode != obj.BALANCE_NUMBER %}hidden{% endif %}"
+               id="units_balancing_tolerance_{{ obj.id }}">{% trans '(number of tasks)' %}</span>
     </td>
 
     <td>
-        <input type="number" class="form-control" id="id_auto_affinity_{{ category.id }}" name="auto_affinity"
-               {% if category.id %}onchange="$('#check_category_{{ category.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_auto_affinity', {organization_pk: {{ organization.id }}, category_pk: {{ category.id }}, value: $(this).serializeArray()})"{% endif %}
-               value="{{ category.auto_affinity|my_simple_str }}">
+        <input type="number" class="form-control" id="id_auto_affinity_{{ obj.id }}" name="auto_affinity"
+               {% if obj.id %}onchange="$('#check_category_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_auto_affinity', {organization_pk: {{ organization.id }}, category_pk: {{ obj.id }}, value: $(this).serializeArray()})"{% endif %}
+               value="{{ obj.auto_affinity|my_simple_str }}">
     </td>
     <td>
-        {% if category.id %}<button class="btn btn-sm btn-danger" onclick="$('#check_category_{{ category.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.remove_category', {organization_pk: {{ organization.id }}, category_pk: {{ category.id }} })"><li class="fa fa-minus"></li></button>
+        {% if obj.id %}<button class="btn btn-sm btn-danger" onclick="$('#check_category_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.remove_category', {organization_pk: {{ organization.id }}, category_pk: {{ obj.id }} })"><i class="fa fa-minus"></i></button>
         {% else %}<button class="btn btn-sm btn-success"
-                          onclick="$('#check_category_{{ category.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_category', {organization_pk: {{ organization.id }}, value: $('#row_category_{{ category.id }} form').serializeArray()})">
-        <li class="fa fa-plus"></li></button>
+                          onclick="$('#check_category_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_category', {organization_pk: {{ organization.id }}, value: $('#row_category_{{ obj.id }} form').serializeArray()})">
+        <i class="fa fa-plus"></i></button>
         {% endif %}
     </td></form>
 </tr>

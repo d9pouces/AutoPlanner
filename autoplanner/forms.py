@@ -2,10 +2,9 @@
 from django import forms
 from django.contrib.admin.widgets import AdminDateWidget
 from django.core.validators import RegexValidator
-from django.forms import modelformset_factory
 from django.utils.translation import ugettext_lazy as _
 
-from autoplanner.models import Task, default_day_start, Organization, Category
+from autoplanner.models import Task, default_day_start, Category
 
 __author__ = 'Matthieu Gallet'
 
@@ -65,5 +64,40 @@ class CategoryAddForm(forms.Form):
                                              'to the same agent'))
 
 
-CategoryFormSet = modelformset_factory(Category,
-                                       fields=('name', 'balancing_mode', 'balancing_tolerance', 'auto_affinity'))
+class AgentNameForm(forms.Form):
+    name = forms.CharField(label=_('Name'), max_length=500, min_length=1)
+
+
+class AgentStartTimeForm(forms.Form):
+    start_time = forms.DateTimeField(label=_('Arrival time'), required=False)
+
+
+class AgentEndTimeForm(forms.Form):
+    end_time = forms.DateTimeField(label=_('Leaving time'), required=False)
+
+
+class AgentAddForm(forms.Form):
+    name = forms.CharField(label=_('Name'), max_length=500, min_length=1)
+    start_time = forms.DateTimeField(label=_('Arrival time'), required=False)
+
+
+class AgentCategoryPreferencesAffinityForm(forms.Form):
+    affinity = forms.FloatField(label=_('Affinity of the agent for the category.'), initial=0.0)
+
+
+class AgentCategoryPreferencesBalancingOffsetAddForm(forms.Form):
+    balancing_offset = forms.FloatField(label=_('Number of time units already done'), initial=0.0)
+
+
+class AgentCategoryPreferencesBalancingCountAddForm(forms.Form):
+    balancing_count = forms.FloatField(label=_('If a task of this category performed by this agent counts twice, '
+                                               'set this number to 2.0.'), initial=1.0, required=False,
+                                       help_text=_('Blank if the agent cannot perform tasks of this category'))
+
+
+class AgentCategoryPreferencesAddForm(forms.Form):
+    affinity = forms.FloatField(label=_('Affinity of the agent for the category.'), initial=0.0)
+    balancing_offset = forms.FloatField(label=_('Number of time units already done'), initial=0.0)
+    balancing_count = forms.FloatField(label=_('If a task of this category performed by this agent counts twice, '
+                                               'set this number to 2.0.'), initial=1.0, required=False,
+                                       help_text=_('Blank if the agent cannot perform tasks of this category'))

@@ -1,0 +1,33 @@
+{% load i18n %}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
+    </button>
+    <h4 class="modal-title">{{ agent.name}}</h4>
+</div>
+
+<div class="modal-body">
+    <table class="table table-stripped" id="agent_infos_{{ agent.id }}-table">
+        <tr>
+            <th>&nbsp;</th>
+            <th>{% trans 'Category' %}</th>
+            <th>{% trans 'Affinity of the agent for the category' %}</th>
+            <th>{% trans 'Offset' %}
+                <small>{% trans 'Number of time units already done' %}</small>
+            </th>
+            <th>{% trans 'Balancing multiplier' %}
+                <small>{% trans 'If a task of this category performed by this agent counts twice, set this number to 2.0.' %}</small>
+            </th>
+            <th>&nbsp;</th>
+        </tr>
+        {% for obj in agent_category_preferences %}
+        {% include 'autoplanner/include/agent_category_preference.html' %}
+        {% endfor %}
+        {% with obj=new_agent_category_preference %}
+        {% include 'autoplanner/include/agent_category_preference.html' %}
+        {% endwith %}
+    </table>
+
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-default" data-dismiss="modal">{% trans 'Close' %}</button>
+</div>

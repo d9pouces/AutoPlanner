@@ -3,16 +3,17 @@
     same category. {% endblocktrans %}</p>
 <table class="table table-stripped" id="category-table">
     <tr>
-        <td>&nbsp;</td>
-        <td>{% trans 'Name' %}</td>
-        <td>{% trans 'How to balance tasks of this category accross resources?' %}</td>
-        <td>{% trans 'Which difference do you tolerate between the least and the most used resources?' %}</td>
-        <td>{% trans 'Bonus given when two successive tasks are affected to the same resource?' %}</td>
+        <th>&nbsp;</th>
+        <th>{% trans 'Name' %}</th>
+        <th>{% trans 'How to balance tasks of this category accross resources?' %}</th>
+        <th>{% trans 'Which difference do you tolerate between the least and the most used resources?' %}</th>
+        <th>{% trans 'Bonus given when two successive tasks are affected to the same resource?' %}</th>
+        <th>&nbsp;</th>
     </tr>
-    {% for category in categories %}
+    {% for obj in categories %}
     {% include 'autoplanner/include/category.html' %}
     {% endfor %}
-    {% with category=new_category %}
+    {% with obj=new_category %}
     {% include 'autoplanner/include/category.html' %}
     {% endwith %}
 </table>

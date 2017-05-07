@@ -1,0 +1,37 @@
+{% load i18n djangofloor bootstrap3 autoplanner %}
+<tr id="row_agent_category_preferences_{{ obj.id }}">
+    <form role="form" {% if obj.id is None %}onsubmit="$('#check_agent_category_preferences_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_agent_category_preferences', {organization_pk: {{ organization.id }}, agent_pk: {{ agent.id }}, value: $(this).serializeArray()});"{% endif %}>
+    <td style="width: 20px;">
+        <i class="fa" id="check_agent_category_preferences_{{ obj.id }}"></i>
+    </td>
+    <td><bold>{{ obj.category.name}}</bold></td>
+    <td>
+        <input type="number" class="form-control" id="id_affinity_{{ obj.id }}" name="affinity"
+               {% if obj.id %}onchange="$('#check_agent_category_preferences_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_agent_category_preferences_affinity', {organization_pk: {{ organization.id }}, check_agent_category_preferences_pk: {{ obj.id }}, value: $(this).serializeArray()})"{% endif %}
+               value="{% if obj.affinity %}{{ obj.affinity }}{% endif %}">
+    </td>
+    <td>
+        {% if obj.category.balancing_mode is None %}&nbsp;{% else %}
+        <input type="number" class="form-control" id="id_balancing_offset_{{ obj.id }}" name="balancing_offset"
+               {% if obj.id %}onchange="$('#check_agent_category_preferences_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_agent_category_preferences_balancing_offset', {organization_pk: {{ organization.id }}, check_agent_category_preferences_pk: {{ obj.id }}, value: $(this).serializeArray()})"{% endif %}
+               value="{% if obj.balancing_offset %}{{ obj.balancing_offset }}{% endif %}">
+        {% if obj.category.balancing_mode == obj.category.BALANCE_TIME %}{% trans '(in seconds)' %}{% else %}
+        {% trans '(number of tasks)' %}{% endif %}
+        {% endif %}
+    </td>
+    <td>
+        {% if obj.category.balancing_mode is None %}&nbsp;{% else %}
+        <input type="number" class="form-control" id="id_balancing_count_{{ obj.id }}" name="balancing_count"
+               {% if obj.id %}onchange="$('#check_agent_category_preferences_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_agent_category_preferences_balancing_count', {organization_pk: {{ organization.id }}, check_agent_category_preferences_pk: {{ obj.id }}, value: $(this).serializeArray()})"{% endif %}
+               value="{% if obj.balancing_count %}{{ obj.balancing_count }}{% endif %}">
+        {% endif %}
+    </td>
+    <td>
+        {% if obj.id %}<button class="btn btn-sm btn-danger" onclick="$('#check_agent_category_preferences_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.remove_agent_category_preferences', {organization_pk: {{ organization.id }}, agent_category_preferences_pk: {{ obj.id }} })"><i class="fa fa-minus"></i></button>
+        {% else %}<button class="btn btn-sm btn-success"
+                          onclick="$('#check_agent_category_preferences_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_agent_category_preferences', {organization_pk: {{ organization.id }}, value: $('#row_agent_{{ agent.id }} form').serializeArray()})">
+        <i class="fa fa-plus"></i></button>
+        {% endif %}
+    </td>
+</form>
+</tr>

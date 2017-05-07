@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm
-from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER
-from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before
+from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER, modal_show
+from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before, focus, \
+    content
 from djangofloor.wsgi.window_info import render_to_string
 
 from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTokenForm, OrganizationMaxComputeTimeForm, \
     CategoryNameForm, CategoryBalancingModeForm, CategoryBalancingToleranceForm, \
-    CategoryAutoAffinityForm, CategoryAddForm
-from autoplanner.models import Organization, default_token, Category
+    CategoryAutoAffinityForm, CategoryAddForm, AgentAddForm, AgentNameForm, AgentStartTimeForm, AgentEndTimeForm, \
+    AgentCategoryPreferencesAffinityForm, AgentCategoryPreferencesAddForm
+from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences
 
 __author__ = 'Matthieu Gallet'
 
@@ -15,7 +17,8 @@ __author__ = 'Matthieu Gallet'
 @signal(is_allowed_to=everyone, path='autoplanner.change_tab', queue='fast')
 def change_tab(window_info, organization_pk: int, tab_name: str):
     obj = Organization.query(window_info).filter(pk=organization_pk).first()
-    fn = {'general': change_tab_general, 'categories': change_tab_categories}.get(tab_name)
+    fn = {'general': change_tab_general, 'categories': change_tab_categories,
+          'agents': change_tab_agents}.get(tab_name)
     if fn:
         fn(window_info, obj)
 
@@ -32,6 +35,14 @@ def change_tab_categories(window_info, organization):
     context = {'organization': organization, 'categories': queryset,
                'balancing_modes': balancing_modes, 'new_category': Category()}
     render_to_client(window_info, 'autoplanner/tabs/categories.html', context, '#categories')
+
+
+def change_tab_agents(window_info, organization):
+    queryset = Agent.objects.filter(organization=organization).order_by('name')
+    form = AgentStartTimeForm()
+    context = {'organization': organization, 'agents': queryset, 'new_agent': Agent(),
+               'form': form}
+    render_to_client(window_info, 'autoplanner/tabs/agents.html', context, '#agents')
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_description')
@@ -81,12 +92,12 @@ def set_category_name(window_info, organization_pk: int, category_pk: int, value
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_balancing_mode')
 def set_category_balancing_mode(window_info, organization_pk: int,
-                                value: SerializedForm(CategoryBalancingModeForm), category_pk: int=None):
+                                value: SerializedForm(CategoryBalancingModeForm), category_pk: int = None):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
         balancing_mode = value.cleaned_data['balancing_mode']
         if category_pk:
-            Category.objects.filter(organization__id=organization_pk, pk=category_pk)\
+            Category.objects.filter(organization__id=organization_pk, pk=category_pk) \
                 .update(balancing_mode=balancing_mode or None)
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-check')
         if balancing_mode:
@@ -149,6 +160,7 @@ def add_category(window_info, organization_pk: int, value: SerializedForm(Catego
     elif value and not value.is_valid():
         notify(window_info, value.errors, style=NOTIFICATION, level=DANGER)
     add_attribute(window_info, '#check_category_None', 'class', 'fa')
+    focus(window_info, '#id_name_None')
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_category')
@@ -157,3 +169,158 @@ def remove_category(window_info, organization_pk: int, category_pk: int):
     if can_update:
         Category.objects.filter(organization__id=organization_pk, id=category_pk).delete()
         remove(window_info, '#row_category_%s' % category_pk)
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_name')
+def set_agent_name(window_info, organization_pk: int, agent_pk: int, value: SerializedForm(AgentNameForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        name = value.cleaned_data['name']
+        Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).update(name=name)
+        add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_start_time')
+def set_agent_start_time(window_info, organization_pk: int, agent_pk: int, value: SerializedForm(AgentStartTimeForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        start_time = value.cleaned_data['start_time']
+        Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).update(start_time=start_time)
+        add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_end_time')
+def set_agent_end_time(window_info, organization_pk: int, agent_pk: int, value: SerializedForm(AgentEndTimeForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        end_time = value.cleaned_data['end_time']
+        Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).update(end_time=end_time)
+        add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_agent')
+def add_agent(window_info, organization_pk: int, value: SerializedForm(AgentAddForm)):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    can_update = organization is not None
+    if can_update and value and value.is_valid():
+        agent = Agent(organization_id=organization_pk, name=value.cleaned_data['name'])
+        agent.save()
+        context = {'organization': organization, 'agent': agent}
+        content_str = render_to_string('autoplanner/include/agent.html', context=context, window_info=window_info)
+        before(window_info, '#row_agent_None', content_str)
+    elif value and not value.is_valid():
+        notify(window_info, value.errors, style=NOTIFICATION, level=DANGER)
+    add_attribute(window_info, '#check_agent_None', 'class', 'fa')
+    focus(window_info, '#id_name_None')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_agent')
+def remove_agent(window_info, organization_pk: int, agent_pk: int):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update:
+        Agent.objects.filter(organization__id=organization_pk, id=agent_pk).delete()
+        remove(window_info, '#row_agent_%s' % agent_pk)
+        remove(window_info, '#row_agent_pref_%s' % agent_pk)
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.show_agent_infos')
+def show_agent_infos(window_info, organization_pk: int, agent_pk: int):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    agent = Agent.objects.filter(organization__id=organization_pk, id=agent_pk).first()
+    if organization and agent:
+        query = AgentCategoryPreferences.objects.filter(organization__id=organization_pk, agent__id=agent_pk) \
+            .select_related('category')
+        categories = list(Category.objects.filter(organization=organization).order_by('name'))
+        # noinspection PyProtectedMember
+        balancing_modes = Category._meta.get_field('balancing_mode').choices
+        context = {'agent_category_preferences': query, 'agent': agent, 'organization': organization,
+                   'new_agent_category_preference': AgentCategoryPreferences(),
+                   'categories': categories, 'balancing_modes': balancing_modes, }
+        content_str = render_to_string('autoplanner/include/agent_infos.html', context=context, window_info=window_info)
+        modal_show(window_info, content_str)
+        add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa')
+    else:
+        add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_affinity')
+def set_agent_category_preferences_affinity(window_info, organization_pk: int, check_agent_category_preferences_pk: int,
+                                            value: SerializedForm(AgentCategoryPreferencesAffinityForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        affinity = value.cleaned_data['affinity']
+        AgentCategoryPreferences.objects \
+            .filter(organization__id=organization_pk, pk=check_agent_category_preferences_pk) \
+            .update(affinity=affinity)
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % check_agent_category_preferences_pk,
+                      'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % check_agent_category_preferences_pk,
+                      'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_offset')
+def set_agent_category_preferences_balancing_offset(window_info, organization_pk: int,
+                                                    check_agent_category_preferences_pk: int,
+                                                    value: SerializedForm(AgentCategoryPreferencesAffinityForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        balancing_offset = value.cleaned_data['balancing_offset']
+        AgentCategoryPreferences.objects \
+            .filter(organization__id=organization_pk, pk=check_agent_category_preferences_pk) \
+            .update(balancing_offset=balancing_offset)
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % check_agent_category_preferences_pk,
+                      'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % check_agent_category_preferences_pk,
+                      'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_count')
+def set_agent_category_preferences_balancing_count(window_info, organization_pk: int,
+                                                   check_agent_category_preferences_pk: int,
+                                                   value: SerializedForm(AgentCategoryPreferencesAffinityForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        balancing_count = value.cleaned_data['balancing_count']
+        AgentCategoryPreferences.objects \
+            .filter(organization__id=organization_pk, pk=check_agent_category_preferences_pk) \
+            .update(balancing_count=balancing_count)
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % check_agent_category_preferences_pk,
+                      'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % check_agent_category_preferences_pk,
+                      'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_agent_category_preferences')
+def add_agent_category_preferences(window_info, organization_pk: int, agent_pk: int,
+                                   value: SerializedForm(AgentCategoryPreferencesAddForm)):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    agent = Agent.objects.filter(organization__id=organization_pk, id=agent_pk).first()
+    if organization and agent and value and value.is_valid():
+        agent_category_preferences = AgentCategoryPreferences(organization_id=organization_pk, agent_id=agent_pk,
+                                                              name=value.cleaned_data['name'])
+        agent_category_preferences.save()
+        context = {'organization': organization, 'agent_category_preferences': agent_category_preferences}
+        content_str = render_to_string('autoplanner/include/agent_category_preference.html', context=context,
+                                       window_info=window_info)
+        before(window_info, '#row_agent_category_preferences_None', content_str)
+    elif value and not value.is_valid():
+        notify(window_info, value.errors, style=NOTIFICATION, level=DANGER)
+    add_attribute(window_info, '#check_agent_category_preferences_None', 'class', 'fa')
+    focus(window_info, '#id_name_None')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_agent_category_preferences')
+def remove_agent_category_preferences(window_info, organization_pk: int, agent_category_preferences_pk: int):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update:
+        Agent.objects.filter(organization__id=organization_pk, id=agent_category_preferences_pk).delete()
+        remove(window_info, '#row_agent_category_preferences_%s' % agent_category_preferences_pk)
