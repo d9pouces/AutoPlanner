@@ -8,7 +8,8 @@ from djangofloor.wsgi.window_info import render_to_string
 from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTokenForm, OrganizationMaxComputeTimeForm, \
     CategoryNameForm, CategoryBalancingModeForm, CategoryBalancingToleranceForm, \
     CategoryAutoAffinityForm, CategoryAddForm, AgentAddForm, AgentNameForm, AgentStartTimeForm, AgentEndTimeForm, \
-    AgentCategoryPreferencesAffinityForm, AgentCategoryPreferencesAddForm
+    AgentCategoryPreferencesAffinityForm, AgentCategoryPreferencesAddForm, AgentCategoryPreferencesBalancingOffsetForm, \
+    AgentCategoryPreferencesBalancingCountForm
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences
 
 __author__ = 'Matthieu Gallet'
@@ -234,13 +235,18 @@ def show_agent_infos(window_info, organization_pk: int, agent_pk: int):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     agent = Agent.objects.filter(organization__id=organization_pk, id=agent_pk).first()
     if organization and agent:
-        query = AgentCategoryPreferences.objects.filter(organization__id=organization_pk, agent__id=agent_pk) \
-            .select_related('category')
-        categories = list(Category.objects.filter(organization=organization).order_by('name'))
+        query = list(AgentCategoryPreferences.objects.filter(organization__id=organization_pk, agent__id=agent_pk)
+                     .select_related('category'))
+        used_ids = {x.category_id for x in query}
+        categories = list(Category.objects.filter(organization=organization).exclude(id__in=used_ids).order_by('name'))
         # noinspection PyProtectedMember
         balancing_modes = Category._meta.get_field('balancing_mode').choices
+        if categories:
+            agent_category_preferences = AgentCategoryPreferences()
+        else:
+            agent_category_preferences = None
         context = {'agent_category_preferences': query, 'agent': agent, 'organization': organization,
-                   'new_agent_category_preference': AgentCategoryPreferences(),
+                   'new_agent_category_preference': agent_category_preferences,
                    'categories': categories, 'balancing_modes': balancing_modes, }
         content_str = render_to_string('autoplanner/include/agent_infos.html', context=context, window_info=window_info)
         modal_show(window_info, content_str)
@@ -268,7 +274,7 @@ def set_agent_category_preferences_affinity(window_info, organization_pk: int, c
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_offset')
 def set_agent_category_preferences_balancing_offset(window_info, organization_pk: int,
                                                     check_agent_category_preferences_pk: int,
-                                                    value: SerializedForm(AgentCategoryPreferencesAffinityForm)):
+                                                    value: SerializedForm(AgentCategoryPreferencesBalancingOffsetForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
         balancing_offset = value.cleaned_data['balancing_offset']
@@ -285,7 +291,7 @@ def set_agent_category_preferences_balancing_offset(window_info, organization_pk
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_count')
 def set_agent_category_preferences_balancing_count(window_info, organization_pk: int,
                                                    check_agent_category_preferences_pk: int,
-                                                   value: SerializedForm(AgentCategoryPreferencesAffinityForm)):
+                                                   value: SerializedForm(AgentCategoryPreferencesBalancingCountForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
         balancing_count = value.cleaned_data['balancing_count']
@@ -304,14 +310,26 @@ def add_agent_category_preferences(window_info, organization_pk: int, agent_pk: 
                                    value: SerializedForm(AgentCategoryPreferencesAddForm)):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     agent = Agent.objects.filter(organization__id=organization_pk, id=agent_pk).first()
+    AgentCategoryPreferences.objects.filter(organization__id=organization_pk, agent__id=agent_pk)\
+        .values_list('category_id')
     if organization and agent and value and value.is_valid():
-        agent_category_preferences = AgentCategoryPreferences(organization_id=organization_pk, agent_id=agent_pk,
-                                                              name=value.cleaned_data['name'])
-        agent_category_preferences.save()
-        context = {'organization': organization, 'agent_category_preferences': agent_category_preferences}
-        content_str = render_to_string('autoplanner/include/agent_category_preference.html', context=context,
-                                       window_info=window_info)
-        before(window_info, '#row_agent_category_preferences_None', content_str)
+        new_category_id = value.cleaned_data['category']
+        category = Category.objects.filter(organization__id=organization_pk, id=new_category_id).first()
+        not_used = AgentCategoryPreferences.objects.filter(organization__id=organization_pk, agent__id=agent_pk,
+                                                           category__id=new_category_id).count() == 0
+        if not_used and category:
+            agent_category_preferences = AgentCategoryPreferences(organization_id=organization_pk, agent_id=agent_pk,
+                                                                  category=category)
+            agent_category_preferences.save()
+            context = {'organization': organization, 'obj': agent_category_preferences, 'agent': agent}
+            content_str = render_to_string('autoplanner/include/agent_category_preference.html', context=context,
+                                           window_info=window_info)
+            before(window_info, '#row_agent_category_preferences_None', content_str)
+        if Category.objects.filter(organization__id=organization_pk).count() == \
+                AgentCategoryPreferences.objects.filter(organization__id=organization_pk, agent__id=agent_pk).count():
+            remove(window_info, '#row_agent_category_preferences_None')
+        else:
+            remove(window_info, '#id_category option[value="%s"]' % new_category_id)
     elif value and not value.is_valid():
         notify(window_info, value.errors, style=NOTIFICATION, level=DANGER)
     add_attribute(window_info, '#check_agent_category_preferences_None', 'class', 'fa')
@@ -319,8 +337,11 @@ def add_agent_category_preferences(window_info, organization_pk: int, agent_pk: 
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_agent_category_preferences')
-def remove_agent_category_preferences(window_info, organization_pk: int, agent_category_preferences_pk: int):
+def remove_agent_category_preferences(window_info, organization_pk: int, agent_category_preferences_pk: int,
+                                      agent_pk: int):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update:
-        Agent.objects.filter(organization__id=organization_pk, id=agent_category_preferences_pk).delete()
+        AgentCategoryPreferences.objects \
+            .filter(organization__id=organization_pk, id=agent_category_preferences_pk).delete()
         remove(window_info, '#row_agent_category_preferences_%s' % agent_category_preferences_pk)
+        show_agent_infos(window_info, organization_pk=organization_pk, agent_pk=agent_pk)

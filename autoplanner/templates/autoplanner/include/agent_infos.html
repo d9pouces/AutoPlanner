@@ -22,9 +22,11 @@
         {% for obj in agent_category_preferences %}
         {% include 'autoplanner/include/agent_category_preference.html' %}
         {% endfor %}
+        {% if new_agent_category_preference %}
         {% with obj=new_agent_category_preference %}
         {% include 'autoplanner/include/agent_category_preference.html' %}
         {% endwith %}
+        {% endif %}
     </table>
 
 </div>

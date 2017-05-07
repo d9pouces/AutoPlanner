@@ -85,19 +85,15 @@ class AgentCategoryPreferencesAffinityForm(forms.Form):
     affinity = forms.FloatField(label=_('Affinity of the agent for the category.'), initial=0.0)
 
 
-class AgentCategoryPreferencesBalancingOffsetAddForm(forms.Form):
+class AgentCategoryPreferencesBalancingOffsetForm(forms.Form):
     balancing_offset = forms.FloatField(label=_('Number of time units already done'), initial=0.0)
 
 
-class AgentCategoryPreferencesBalancingCountAddForm(forms.Form):
+class AgentCategoryPreferencesBalancingCountForm(forms.Form):
     balancing_count = forms.FloatField(label=_('If a task of this category performed by this agent counts twice, '
                                                'set this number to 2.0.'), initial=1.0, required=False,
                                        help_text=_('Blank if the agent cannot perform tasks of this category'))
 
 
 class AgentCategoryPreferencesAddForm(forms.Form):
-    affinity = forms.FloatField(label=_('Affinity of the agent for the category.'), initial=0.0)
-    balancing_offset = forms.FloatField(label=_('Number of time units already done'), initial=0.0)
-    balancing_count = forms.FloatField(label=_('If a task of this category performed by this agent counts twice, '
-                                               'set this number to 2.0.'), initial=1.0, required=False,
-                                       help_text=_('Blank if the agent cannot perform tasks of this category'))
+    category = forms.IntegerField()
