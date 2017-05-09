@@ -152,12 +152,7 @@ class Category(OrganizationObject):
 class MaxAffectation(OrganizationObject):
     MINIMUM = 'min'
     MAXIMUM = 'max'
-    # category = models.ForeignKey(Category, db_index=True)
-    category = ChainedForeignKey(Category,
-                                 chained_field='organization',
-                                 chained_model_field='organization',
-                                 show_all=False, auto_choose=True, on_delete=models.CASCADE,
-                                 db_index=True)
+    category = models.ForeignKey(Category, db_index=True, on_delete=models.CASCADE)
     mode = models.CharField(_('Mode'), max_length=3, choices=((MINIMUM, _('At least this number of tasks')),
                                                               (MAXIMUM, _('At most this number of tasks'))),
                             default=MAXIMUM)
@@ -258,6 +253,10 @@ class AgentCategoryPreferences(OrganizationObject):
     class Meta(object):
         verbose_name = 'preference by agent and category'
         verbose_name_plural = 'preferences by agent and category'
+
+    @property
+    def offset_as_timedelta(self):
+        return datetime.timedelta(seconds=self.balancing_offset)
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):

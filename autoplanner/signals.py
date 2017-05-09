@@ -9,8 +9,12 @@ from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTok
     CategoryNameForm, CategoryBalancingModeForm, CategoryBalancingToleranceForm, \
     CategoryAutoAffinityForm, CategoryAddForm, AgentAddForm, AgentNameForm, AgentStartTimeForm, AgentEndTimeForm, \
     AgentCategoryPreferencesAffinityForm, AgentCategoryPreferencesAddForm, AgentCategoryPreferencesBalancingOffsetForm, \
-    AgentCategoryPreferencesBalancingCountForm
-from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences
+    AgentCategoryPreferencesBalancingCountForm, MaxTaskAffectationAddForm, MaxTaskAffectationModeForm, \
+    MaxTaskAffectationCategoryForm, MaxTaskAffectationTaskMaximumCountForm, MaxTaskAffectationRangeTimeSliceForm, \
+    AgentCategoryPreferencesBalancingOffsetTimeForm
+from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
+    MaxTaskAffectation, MaxTimeTaskAffectation
+from autoplanner.utils import python_to_components
 
 __author__ = 'Matthieu Gallet'
 
@@ -19,7 +23,8 @@ __author__ = 'Matthieu Gallet'
 def change_tab(window_info, organization_pk: int, tab_name: str):
     obj = Organization.query(window_info).filter(pk=organization_pk).first()
     fn = {'general': change_tab_general, 'categories': change_tab_categories,
-          'agents': change_tab_agents}.get(tab_name)
+          'agents': change_tab_agents, 'balancing': change_tab_balancing,
+          }.get(tab_name)
     if fn:
         fn(window_info, obj)
 
@@ -40,10 +45,19 @@ def change_tab_categories(window_info, organization):
 
 def change_tab_agents(window_info, organization):
     queryset = Agent.objects.filter(organization=organization).order_by('name')
-    form = AgentStartTimeForm()
-    context = {'organization': organization, 'agents': queryset, 'new_agent': Agent(),
-               'form': form}
+    context = {'organization': organization, 'agents': queryset, 'new_agent': Agent()}
     render_to_client(window_info, 'autoplanner/tabs/agents.html', context, '#agents')
+
+
+def change_tab_balancing(window_info, organization):
+    task_queryset = MaxTaskAffectation.objects.filter(organization=organization)
+    time_queryset = MaxTimeTaskAffectation.objects.filter(organization=organization)
+    categories_queryset = list(Category.objects.filter(organization=organization).order_by('name'))
+    context = {'organization': organization, 'max_task_affectations': task_queryset,
+               'max_time_affectations': time_queryset, 'categories': categories_queryset,
+               'new_max_task_affectation': MaxTaskAffectation(),
+               'new_max_time_affectation': MaxTimeTaskAffectation()}
+    render_to_client(window_info, 'autoplanner/tabs/balancing.html', context, '#balancing')
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_description')
@@ -256,52 +270,70 @@ def show_agent_infos(window_info, organization_pk: int, agent_pk: int):
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_affinity')
-def set_agent_category_preferences_affinity(window_info, organization_pk: int, check_agent_category_preferences_pk: int,
+def set_agent_category_preferences_affinity(window_info, organization_pk: int, agent_category_preferences_pk: int,
                                             value: SerializedForm(AgentCategoryPreferencesAffinityForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
         affinity = value.cleaned_data['affinity']
         AgentCategoryPreferences.objects \
-            .filter(organization__id=organization_pk, pk=check_agent_category_preferences_pk) \
+            .filter(organization__id=organization_pk, pk=agent_category_preferences_pk) \
             .update(affinity=affinity)
-        add_attribute(window_info, '#check_agent_category_preferences_%s' % check_agent_category_preferences_pk,
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % agent_category_preferences_pk,
                       'class', 'fa fa-check')
     elif value:
-        add_attribute(window_info, '#check_agent_category_preferences_%s' % check_agent_category_preferences_pk,
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % agent_category_preferences_pk,
                       'class', 'fa fa-remove')
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_offset')
 def set_agent_category_preferences_balancing_offset(window_info, organization_pk: int,
-                                                    check_agent_category_preferences_pk: int,
+                                                    agent_category_preferences_pk: int,
                                                     value: SerializedForm(AgentCategoryPreferencesBalancingOffsetForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
         balancing_offset = value.cleaned_data['balancing_offset']
         AgentCategoryPreferences.objects \
-            .filter(organization__id=organization_pk, pk=check_agent_category_preferences_pk) \
+            .filter(organization__id=organization_pk, pk=agent_category_preferences_pk) \
             .update(balancing_offset=balancing_offset)
-        add_attribute(window_info, '#check_agent_category_preferences_%s' % check_agent_category_preferences_pk,
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % agent_category_preferences_pk,
                       'class', 'fa fa-check')
     elif value:
-        add_attribute(window_info, '#check_agent_category_preferences_%s' % check_agent_category_preferences_pk,
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % agent_category_preferences_pk,
+                      'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_offset_time')
+def set_agent_category_preferences_balancing_offset_time(
+        window_info, organization_pk: int,
+        agent_category_preferences_pk: int,
+        value: SerializedForm(AgentCategoryPreferencesBalancingOffsetTimeForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        balancing_offset = value.cleaned_data['balancing_offset'].total_seconds()
+        AgentCategoryPreferences.objects \
+            .filter(organization__id=organization_pk, pk=agent_category_preferences_pk) \
+            .update(balancing_offset=balancing_offset)
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % agent_category_preferences_pk,
+                      'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % agent_category_preferences_pk,
                       'class', 'fa fa-remove')
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_count')
 def set_agent_category_preferences_balancing_count(window_info, organization_pk: int,
-                                                   check_agent_category_preferences_pk: int,
+                                                   agent_category_preferences_pk: int,
                                                    value: SerializedForm(AgentCategoryPreferencesBalancingCountForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
         balancing_count = value.cleaned_data['balancing_count']
         AgentCategoryPreferences.objects \
-            .filter(organization__id=organization_pk, pk=check_agent_category_preferences_pk) \
+            .filter(organization__id=organization_pk, pk=agent_category_preferences_pk) \
             .update(balancing_count=balancing_count)
-        add_attribute(window_info, '#check_agent_category_preferences_%s' % check_agent_category_preferences_pk,
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % agent_category_preferences_pk,
                       'class', 'fa fa-check')
     elif value:
-        add_attribute(window_info, '#check_agent_category_preferences_%s' % check_agent_category_preferences_pk,
+        add_attribute(window_info, '#check_agent_category_preferences_%s' % agent_category_preferences_pk,
                       'class', 'fa fa-remove')
 
 
@@ -310,7 +342,7 @@ def add_agent_category_preferences(window_info, organization_pk: int, agent_pk: 
                                    value: SerializedForm(AgentCategoryPreferencesAddForm)):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     agent = Agent.objects.filter(organization__id=organization_pk, id=agent_pk).first()
-    AgentCategoryPreferences.objects.filter(organization__id=organization_pk, agent__id=agent_pk)\
+    AgentCategoryPreferences.objects.filter(organization__id=organization_pk, agent__id=agent_pk) \
         .values_list('category_id')
     if organization and agent and value and value.is_valid():
         new_category_id = value.cleaned_data['category']
@@ -345,3 +377,106 @@ def remove_agent_category_preferences(window_info, organization_pk: int, agent_c
             .filter(organization__id=organization_pk, id=agent_category_preferences_pk).delete()
         remove(window_info, '#row_agent_category_preferences_%s' % agent_category_preferences_pk)
         show_agent_infos(window_info, organization_pk=organization_pk, agent_pk=agent_pk)
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_task_affectation_mode')
+def set_max_task_affectation_mode(window_info, organization_pk: int, max_task_affectation_pk: int,
+                                  value: SerializedForm(MaxTaskAffectationModeForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        mode = value.cleaned_data['mode']
+        MaxTaskAffectation.objects \
+            .filter(organization__id=organization_pk, pk=max_task_affectation_pk) \
+            .update(mode=mode)
+        add_attribute(window_info, '#check_max_task_affectation_%s' % max_task_affectation_pk,
+                      'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_max_task_affectation_%s' % max_task_affectation_pk,
+                      'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_task_affectation_category')
+def set_max_task_affectation_mode(window_info, organization_pk: int, max_task_affectation_pk: int,
+                                  value: SerializedForm(MaxTaskAffectationCategoryForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        category = value.cleaned_data['category']
+        MaxTaskAffectation.objects \
+            .filter(organization__id=organization_pk, pk=max_task_affectation_pk) \
+            .update(category=category)
+        add_attribute(window_info, '#check_max_task_affectation_%s' % max_task_affectation_pk,
+                      'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_max_task_affectation_%s' % max_task_affectation_pk,
+                      'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_task_affectation_range_time_slice')
+def set_max_task_affectation_range_time_slice(window_info, organization_pk: int, max_task_affectation_pk: int,
+                                              value: SerializedForm(MaxTaskAffectationRangeTimeSliceForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        range_time_slice = value.cleaned_data['range_time_slice']
+        days, hours, seconds = python_to_components(range_time_slice)
+        MaxTaskAffectation.objects \
+            .filter(organization__id=organization_pk, pk=max_task_affectation_pk) \
+            .update(range_time_slice_days=days, range_time_slice_hours=hours, range_time_slice_seconds=seconds)
+        add_attribute(window_info, '#check_max_task_affectation_%s' % max_task_affectation_pk,
+                      'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_max_task_affectation_%s' % max_task_affectation_pk,
+                      'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_task_affectation_task_maximum_count')
+def set_max_task_affectation_task_maximum_count(window_info, organization_pk: int, max_task_affectation_pk: int,
+                                                value: SerializedForm(MaxTaskAffectationTaskMaximumCountForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        task_maximum_count = value.cleaned_data['task_maximum_count']
+        MaxTaskAffectation.objects \
+            .filter(organization__id=organization_pk, pk=max_task_affectation_pk) \
+            .update(task_maximum_count=task_maximum_count)
+        add_attribute(window_info, '#check_max_task_affectation_%s' % max_task_affectation_pk,
+                      'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_max_task_affectation_%s' % max_task_affectation_pk,
+                      'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_max_task_affectation')
+def add_max_task_affectation(window_info, organization_pk: int, value: SerializedForm(MaxTaskAffectationAddForm)):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if organization and value and value.is_valid():
+        new_category_id = value.cleaned_data['category'].id
+        category = Category.objects.filter(organization__id=organization_pk, id=new_category_id).first()
+        mode = value.cleaned_data['mode']
+        range_time_slice = value.cleaned_data['range_time_slice']
+        task_maximum_count = value.cleaned_data['task_maximum_count']
+        days, hours, seconds = python_to_components(range_time_slice)
+
+        if category:
+            max_task_affectation = MaxTaskAffectation(organization_id=organization_pk, mode=mode,
+                                                      category=category,
+                                                      task_maximum_count=task_maximum_count,
+                                                      range_time_slice_days=days, range_time_slice_hours=hours,
+                                                      range_time_slice_seconds=seconds)
+            max_task_affectation.save()
+            context = {'organization': organization, 'obj': max_task_affectation,
+                       'categories': Category.objects.filter(organization__id=organization_pk).order_by('name')}
+            content_str = render_to_string('autoplanner/include/max_task_affectation.html', context=context,
+                                           window_info=window_info)
+            before(window_info, '#row_max_task_affectation_None', content_str)
+    elif value and not value.is_valid():
+        notify(window_info, value.errors, style=NOTIFICATION, level=DANGER)
+    add_attribute(window_info, '#check_max_task_affectation_None', 'class', 'fa')
+    focus(window_info, '#id_name_None')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_max_task_affectation')
+def remove_max_task_affectation(window_info, organization_pk: int, max_task_affectation_pk: int):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update:
+        MaxTaskAffectation.objects \
+            .filter(organization__id=organization_pk, id=max_task_affectation_pk).delete()
+        remove(window_info, '#row_max_task_affectation_%s' % max_task_affectation_pk)

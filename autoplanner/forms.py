@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
+import re
 from django import forms
 from django.contrib.admin.widgets import AdminDateWidget
+from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
+from django.utils import formats
 from django.utils.translation import ugettext_lazy as _
 
-from autoplanner.models import Task, default_day_start, Category
+from autoplanner.models import Task, default_day_start, Category, MaxTaskAffectation
+from autoplanner.utils import TimeDeltaField
 
 __author__ = 'Matthieu Gallet'
 
@@ -86,7 +90,11 @@ class AgentCategoryPreferencesAffinityForm(forms.Form):
 
 
 class AgentCategoryPreferencesBalancingOffsetForm(forms.Form):
-    balancing_offset = forms.FloatField(label=_('Number of time units already done'), initial=0.0)
+    balancing_offset = forms.FloatField(label=_('Number of tasks already done'), initial=0.0)
+
+
+class AgentCategoryPreferencesBalancingOffsetTimeForm(forms.Form):
+    balancing_offset = TimeDeltaField(label=_('Time already passed on this category of tasks'), initial='0d')
 
 
 class AgentCategoryPreferencesBalancingCountForm(forms.Form):
@@ -97,3 +105,30 @@ class AgentCategoryPreferencesBalancingCountForm(forms.Form):
 
 class AgentCategoryPreferencesAddForm(forms.Form):
     category = forms.IntegerField()
+
+
+class MaxTaskAffectationCategoryForm(forms.Form):
+    category = forms.ModelChoiceField(queryset=Category.objects.all())
+
+
+class MaxTaskAffectationModeForm(forms.Form):
+    mode = forms.ChoiceField(choices=((MaxTaskAffectation.MINIMUM, _('At least this number of tasks')),
+                                      (MaxTaskAffectation.MAXIMUM, _('At most this number of tasks'))),
+                             initial=MaxTaskAffectation.MAXIMUM)
+
+
+class MaxTaskAffectationRangeTimeSliceForm(forms.Form):
+    range_time_slice = TimeDeltaField(label=_('Period length (days)'), initial='2d')
+
+
+class MaxTaskAffectationTaskMaximumCountForm(forms.Form):
+    task_maximum_count = forms.IntegerField(label=_('Number of tasks in this range'), initial=1)
+
+
+class MaxTaskAffectationAddForm(forms.Form):
+    category = forms.ModelChoiceField(queryset=Category.objects.all())
+    mode = forms.ChoiceField(choices=((MaxTaskAffectation.MINIMUM, _('At least this number of tasks')),
+                                      (MaxTaskAffectation.MAXIMUM, _('At most this number of tasks'))),
+                             initial=MaxTaskAffectation.MAXIMUM)
+    range_time_slice = TimeDeltaField(label=_('Period length (days)'), initial='2d')
+    task_maximum_count = forms.IntegerField(label=_('Number of tasks in this range'), initial=1)

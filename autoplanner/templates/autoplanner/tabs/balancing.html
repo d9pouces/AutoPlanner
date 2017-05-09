@@ -1,0 +1,20 @@
+{% load i18n %}
+<p>{% blocktrans %}You can add some constraints.{% endblocktrans %}</p>
+
+<table class="table table-stripped" id="max-task-affectation-table">
+    <tr>
+        <th>&nbsp;</th>
+        <th>{% trans 'At most or at least…' %}</th>
+        <th>{% trans 'this number…' %}</th>
+        <th>{% trans 'of tasks of category…' %}</th>
+        <th>{% trans 'within this period' %}</th>
+        <th>&nbsp;</th>
+    </tr>
+    {% for obj in max_task_affectations %}
+    {% include 'autoplanner/include/max_task_affectation.html' %}
+    {% endfor %}
+    {% with obj=new_max_task_affectation %}
+    {% include 'autoplanner/include/max_task_affectation.html' %}
+    {% endwith %}
+</table>
+
