@@ -150,7 +150,7 @@ class Category(OrganizationObject):
 
     @property
     def balancing_tolerance_as_timedelta(self):
-        return datetime.timedelta(seconds=self.balancing_tolerance)
+        return datetime.timedelta(seconds=self.balancing_tolerance or 0)
 
 
 class MaxAffectation(OrganizationObject):
