@@ -9,7 +9,7 @@
             <option value="{{ obj.MINIMUM }}" {% if obj.mode == obj.MINIMUM %}selected="selected"{% endif %}>{% trans 'At least' %}</option>
         </select>
     </td>
-    <td><input type="number" class="form-control" name="task_maximum_time"
+    <td><input type="text" class="form-control" name="task_maximum_time"
                {% if obj.id %}onchange="$('#check_max_time_affectation_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_max_time_affectation_task_maximum_time', {organization_pk: {{ organization.id }}, max_time_affectation_pk: {{ obj.id }}, value: $(this).serializeArray()})"{% endif %}
                value="{{ obj.task_maximum_time|timedelta }}">
     </td>

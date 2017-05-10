@@ -125,6 +125,10 @@ class MaxTaskAffectationTaskMaximumCountForm(forms.Form):
     task_maximum_count = forms.IntegerField(label=_('Number of tasks in this range'), initial=1)
 
 
+class MaxTimeAffectationTaskMaximumTimeForm(forms.Form):
+    task_maximum_time = TimeDeltaField(label=_('Number of tasks in this range'), initial='12:00')
+
+
 class MaxTaskAffectationAddForm(forms.Form):
     category = forms.ModelChoiceField(queryset=Category.objects.all())
     mode = forms.ChoiceField(choices=((MaxTaskAffectation.MINIMUM, _('At least this number of tasks')),
@@ -132,3 +136,12 @@ class MaxTaskAffectationAddForm(forms.Form):
                              initial=MaxTaskAffectation.MAXIMUM)
     range_time_slice = TimeDeltaField(label=_('Period length (days)'), initial='2d')
     task_maximum_count = forms.IntegerField(label=_('Number of tasks in this range'), initial=1)
+
+
+class MaxTimeAffectationAddForm(forms.Form):
+    category = forms.ModelChoiceField(queryset=Category.objects.all())
+    mode = forms.ChoiceField(choices=((MaxTaskAffectation.MINIMUM, _('At least this number of tasks')),
+                                      (MaxTaskAffectation.MAXIMUM, _('At most this number of tasks'))),
+                             initial=MaxTaskAffectation.MAXIMUM)
+    range_time_slice = TimeDeltaField(label=_('Period length (days)'), initial='2d')
+    task_maximum_time = TimeDeltaField(label=_('Number of tasks in this range'), initial='12:00')

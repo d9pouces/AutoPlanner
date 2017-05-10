@@ -11,7 +11,7 @@ from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTok
     AgentCategoryPreferencesAffinityForm, AgentCategoryPreferencesAddForm, AgentCategoryPreferencesBalancingOffsetForm, \
     AgentCategoryPreferencesBalancingCountForm, MaxTaskAffectationAddForm, MaxTaskAffectationModeForm, \
     MaxTaskAffectationCategoryForm, MaxTaskAffectationTaskMaximumCountForm, MaxTaskAffectationRangeTimeSliceForm, \
-    AgentCategoryPreferencesBalancingOffsetTimeForm
+    AgentCategoryPreferencesBalancingOffsetTimeForm, MaxTimeAffectationTaskMaximumTimeForm, MaxTimeAffectationAddForm
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
     MaxTaskAffectation, MaxTimeTaskAffectation
 from autoplanner.utils import python_to_components
@@ -480,3 +480,109 @@ def remove_max_task_affectation(window_info, organization_pk: int, max_task_affe
         MaxTaskAffectation.objects \
             .filter(organization__id=organization_pk, id=max_task_affectation_pk).delete()
         remove(window_info, '#row_max_task_affectation_%s' % max_task_affectation_pk)
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_time_affectation_mode')
+def set_max_time_affectation_mode(window_info, organization_pk: int, max_time_affectation_pk: int,
+                                  value: SerializedForm(MaxTaskAffectationModeForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        mode = value.cleaned_data['mode']
+        MaxTimeTaskAffectation.objects \
+            .filter(organization__id=organization_pk, pk=max_time_affectation_pk) \
+            .update(mode=mode)
+        add_attribute(window_info, '#check_max_time_affectation_%s' % max_time_affectation_pk,
+                      'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_max_time_affectation_%s' % max_time_affectation_pk,
+                      'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_time_affectation_category')
+def set_max_time_affectation_mode(window_info, organization_pk: int, max_time_affectation_pk: int,
+                                  value: SerializedForm(MaxTaskAffectationCategoryForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        category = value.cleaned_data['category']
+        MaxTimeTaskAffectation.objects \
+            .filter(organization__id=organization_pk, pk=max_time_affectation_pk) \
+            .update(category=category)
+        add_attribute(window_info, '#check_max_time_affectation_%s' % max_time_affectation_pk,
+                      'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_max_time_affectation_%s' % max_time_affectation_pk,
+                      'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_time_affectation_range_time_slice')
+def set_max_time_affectation_range_time_slice(window_info, organization_pk: int, max_time_affectation_pk: int,
+                                              value: SerializedForm(MaxTaskAffectationRangeTimeSliceForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        range_time_slice = value.cleaned_data['range_time_slice']
+        days, hours, seconds = python_to_components(range_time_slice)
+        MaxTimeTaskAffectation.objects \
+            .filter(organization__id=organization_pk, pk=max_time_affectation_pk) \
+            .update(range_time_slice_days=days, range_time_slice_hours=hours, range_time_slice_seconds=seconds)
+        add_attribute(window_info, '#check_max_time_affectation_%s' % max_time_affectation_pk,
+                      'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_max_time_affectation_%s' % max_time_affectation_pk,
+                      'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_time_affectation_task_maximum_time')
+def set_max_time_affectation_task_maximum_time(window_info, organization_pk: int, max_time_affectation_pk: int,
+                                               value: SerializedForm(MaxTimeAffectationTaskMaximumTimeForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        task_maximum_time = value.cleaned_data['task_maximum_time']
+        days, hours, seconds = python_to_components(task_maximum_time)
+        MaxTimeTaskAffectation.objects \
+            .filter(organization__id=organization_pk, pk=max_time_affectation_pk) \
+            .update(task_maximum_time_days=days, task_maximum_time_hours=hours, task_maximum_time_seconds=seconds)
+        add_attribute(window_info, '#check_max_time_affectation_%s' % max_time_affectation_pk,
+                      'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_max_time_affectation_%s' % max_time_affectation_pk,
+                      'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_max_time_affectation')
+def add_max_time_affectation(window_info, organization_pk: int, value: SerializedForm(MaxTimeAffectationAddForm)):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if organization and value and value.is_valid():
+        new_category_id = value.cleaned_data['category'].id
+        category = Category.objects.filter(organization__id=organization_pk, id=new_category_id).first()
+        mode = value.cleaned_data['mode']
+        range_time_slice = value.cleaned_data['range_time_slice']
+        days, hours, seconds = python_to_components(range_time_slice)
+        task_maximum_time = value.cleaned_data['task_maximum_time']
+        days_, hours_, seconds_ = python_to_components(task_maximum_time)
+
+        if category:
+            max_time_affectation = MaxTimeTaskAffectation(organization_id=organization_pk, mode=mode,
+                                                          category=category,
+                                                          range_time_slice_days=days, range_time_slice_hours=hours,
+                                                          range_time_slice_seconds=seconds,
+                                                          task_maximum_time_days=days_, task_maximum_time_hours=hours_,
+                                                          task_maximum_time_seconds=seconds_)
+            max_time_affectation.save()
+            context = {'organization': organization, 'obj': max_time_affectation,
+                       'categories': Category.objects.filter(organization__id=organization_pk).order_by('name')}
+            content_str = render_to_string('autoplanner/include/max_time_affectation.html', context=context,
+                                           window_info=window_info)
+            before(window_info, '#row_max_time_affectation_None', content_str)
+    elif value and not value.is_valid():
+        notify(window_info, value.errors, style=NOTIFICATION, level=DANGER)
+    add_attribute(window_info, '#check_max_time_affectation_None', 'class', 'fa')
+    focus(window_info, '#id_name_None')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_max_time_affectation')
+def remove_max_time_affectation(window_info, organization_pk: int, max_time_affectation_pk: int):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update:
+        MaxTimeTaskAffectation.objects \
+            .filter(organization__id=organization_pk, id=max_time_affectation_pk).delete()
+        remove(window_info, '#row_max_time_affectation_%s' % max_time_affectation_pk)

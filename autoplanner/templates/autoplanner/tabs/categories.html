@@ -1,6 +1,11 @@
 {% load i18n %}
-<p>{% blocktrans %}To ensure that two overlapping tasks are affected to different resources, they must belong to the
-    same category. {% endblocktrans %}</p>
+<p class="well">{% blocktrans %}To ensure that two overlapping tasks are affected to different resources,
+    they must belong to the same category.
+<br>
+    Schedule takes into account the balance of tasks before dispatching them to resources. However, you can only define
+    one type of balancing for each type of tasks: balancing the total time used by each resource, or the number of tasks
+    made by each resource.
+    {% endblocktrans %}</p>
 <table class="table table-stripped" id="category-table">
     <tr>
         <th>&nbsp;</th>
