@@ -137,7 +137,7 @@ class Category(OrganizationObject):
                                                               (BALANCE_NUMBER, _('Total task number'))),
                                       blank=True, null=True, default=None)
     balancing_tolerance = models.FloatField(_('Tolerance for balancing the total duration (in seconds)|tasks '
-                                              'across agents'), default=None, blank=True, null=True)
+                                              'across agents'), default=0., blank=True, null=True)
     auto_affinity = models.FloatField(_('Affinity for allocating successive tasks of the same category '
                                         'to the same agent'), default=0., blank=True)
 
@@ -147,6 +147,10 @@ class Category(OrganizationObject):
     class Meta:
         verbose_name = _('Category of tasks')
         verbose_name_plural = _('Categories of tasks')
+
+    @property
+    def balancing_tolerance_as_timedelta(self):
+        return datetime.timedelta(seconds=self.balancing_tolerance)
 
 
 class MaxAffectation(OrganizationObject):

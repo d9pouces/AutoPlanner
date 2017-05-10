@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm
 from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER, modal_show
-from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before, focus, \
-    content
+from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before, focus
 from djangofloor.wsgi.window_info import render_to_string
 
 from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTokenForm, OrganizationMaxComputeTimeForm, \
-    CategoryNameForm, CategoryBalancingModeForm, CategoryBalancingToleranceForm, \
-    CategoryAutoAffinityForm, CategoryAddForm, AgentAddForm, AgentNameForm, AgentStartTimeForm, AgentEndTimeForm, \
+    CategoryNameForm, CategoryBalancingModeForm, CategoryAutoAffinityForm, CategoryAddForm, AgentAddForm, AgentNameForm, \
+    AgentStartTimeForm, AgentEndTimeForm, \
     AgentCategoryPreferencesAffinityForm, AgentCategoryPreferencesAddForm, AgentCategoryPreferencesBalancingOffsetForm, \
     AgentCategoryPreferencesBalancingCountForm, MaxTaskAffectationAddForm, MaxTaskAffectationModeForm, \
     MaxTaskAffectationCategoryForm, MaxTaskAffectationTaskMaximumCountForm, MaxTaskAffectationRangeTimeSliceForm, \
-    AgentCategoryPreferencesBalancingOffsetTimeForm, MaxTimeAffectationTaskMaximumTimeForm, MaxTimeAffectationAddForm
+    AgentCategoryPreferencesBalancingOffsetTimeForm, MaxTimeAffectationTaskMaximumTimeForm, MaxTimeAffectationAddForm, \
+    CategoryBalancingToleranceTimeForm, CategoryBalancingToleranceNumberForm
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
     MaxTaskAffectation, MaxTimeTaskAffectation
 from autoplanner.utils import python_to_components
@@ -115,25 +115,41 @@ def set_category_balancing_mode(window_info, organization_pk: int,
             Category.objects.filter(organization__id=organization_pk, pk=category_pk) \
                 .update(balancing_mode=balancing_mode or None)
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-check')
-        if balancing_mode:
-            remove_class(window_info, '#id_balancing_tolerance_%s' % category_pk, 'hidden')
-            if balancing_mode == Category.BALANCE_TIME:
-                remove_class(window_info, '#time_balancing_tolerance_%s' % category_pk, 'hidden')
-                add_class(window_info, '#units_balancing_tolerance_%s' % category_pk, 'hidden')
-            else:
-                add_class(window_info, '#time_balancing_tolerance_%s' % category_pk, 'hidden')
-                remove_class(window_info, '#units_balancing_tolerance_%s' % category_pk, 'hidden')
+        if balancing_mode == Category.BALANCE_TIME:
+            add_class(window_info, '#id_balancing_tolerance_%s_number' % category_pk, 'hidden')
+            remove_class(window_info, '#id_balancing_tolerance_%s_time' % category_pk, 'hidden')
+            add_class(window_info, '#legend_balancing_tolerance_%s_number' % category_pk, 'hidden')
+            remove_class(window_info, '#legend_balancing_tolerance_%s_time' % category_pk, 'hidden')
+        elif balancing_mode == Category.BALANCE_NUMBER:
+            remove_class(window_info, '#id_balancing_tolerance_%s_number' % category_pk, 'hidden')
+            add_class(window_info, '#id_balancing_tolerance_%s_time' % category_pk, 'hidden')
+            remove_class(window_info, '#legend_balancing_tolerance_%s_number' % category_pk, 'hidden')
+            add_class(window_info, '#legend_balancing_tolerance_%s_time' % category_pk, 'hidden')
         else:
-            add_class(window_info, '#id_balancing_tolerance_%s' % category_pk, 'hidden')
-            add_class(window_info, '#time_balancing_tolerance_%s' % category_pk, 'hidden')
-            add_class(window_info, '#units_balancing_tolerance_%s' % category_pk, 'hidden')
+            add_class(window_info, '#id_balancing_tolerance_%s_number' % category_pk, 'hidden')
+            add_class(window_info, '#id_balancing_tolerance_%s_time' % category_pk, 'hidden')
+            add_class(window_info, '#legend_balancing_tolerance_%s_number' % category_pk, 'hidden')
+            add_class(window_info, '#legend_balancing_tolerance_%s_time' % category_pk, 'hidden')
     elif value:
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_balancing_tolerance')
-def set_category_balancing_tolerance(window_info, organization_pk: int, category_pk: int,
-                                     value: SerializedForm(CategoryBalancingToleranceForm)):
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_balancing_tolerance_time')
+def set_category_balancing_tolerance_time(window_info, organization_pk: int, category_pk: int,
+                                          value: SerializedForm(CategoryBalancingToleranceTimeForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        balancing_tolerance = value.cleaned_data['balancing_tolerance']
+        Category.objects.filter(organization__id=organization_pk, pk=category_pk).update(
+            balancing_tolerance=balancing_tolerance.total_seconds())
+        add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_balancing_tolerance_number')
+def set_category_balancing_tolerance_number(window_info, organization_pk: int, category_pk: int,
+                                            value: SerializedForm(CategoryBalancingToleranceNumberForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
         balancing_tolerance = value.cleaned_data['balancing_tolerance']
@@ -169,7 +185,7 @@ def add_category(window_info, organization_pk: int, value: SerializedForm(Catego
                             balancing_tolerance=value.cleaned_data['balancing_tolerance'],
                             auto_affinity=value.cleaned_data['auto_affinity'])
         category.save()
-        context = {'organization': organization, 'balancing_modes': balancing_modes, 'category': category}
+        context = {'organization': organization, 'balancing_modes': balancing_modes, 'obj': category}
         content_str = render_to_string('autoplanner/include/category.html', context=context, window_info=window_info)
         before(window_info, '#row_category_None', content_str)
     elif value and not value.is_valid():

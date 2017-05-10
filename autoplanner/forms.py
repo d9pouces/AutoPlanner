@@ -46,7 +46,12 @@ class CategoryBalancingModeForm(forms.Form):
                                                 (Category.BALANCE_NUMBER, _('Total task number'))))
 
 
-class CategoryBalancingToleranceForm(forms.Form):
+class CategoryBalancingToleranceTimeForm(forms.Form):
+    balancing_tolerance = TimeDeltaField(label=_('Tolerance while balancing tasks across resources'),
+                                         required=False)
+
+
+class CategoryBalancingToleranceNumberForm(forms.Form):
     balancing_tolerance = forms.FloatField(label=_('Tolerance while balancing tasks across resources'),
                                            required=False)
 
