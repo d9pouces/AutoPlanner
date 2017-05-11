@@ -37,9 +37,11 @@
         </div>
     </div>
 </div>
+<script type="text/javascript" src="/admin/jsi18n/"></script>
 {% endblock %}
 
 {% block scripts %}
+
 <script type="application/javascript">
     $(function () {
         $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
@@ -47,5 +49,16 @@
         });
         $('#global_tabs a:first').tab('show')
     });
+    function agent_u(signal_name, obj_id, form) {
+        $('#check_agent_' + obj_id).attr('class', 'fa fa-spin fa-spinner');
+        if(form) {
+            $.df.call('autoplanner.forms.' + signal_name, {organization_pk: {{ organization.id }}, agent_pk: obj_id, value: $(form).serializeArray()});
+        }
+        else {
+            $.df.call('autoplanner.forms.' + signal_name, {organization_pk: {{ organization.id }}, agent_pk: obj_id});
+        }
+        return false;
+    }
+
 </script>
 {% endblock %}

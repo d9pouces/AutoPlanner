@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import datetime
+
+from django.utils.timezone import utc
 from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm
 from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER, modal_show
 from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before, focus
@@ -11,7 +14,7 @@ from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTok
     AgentCategoryPreferencesBalancingCountForm, MaxTaskAffectationAddForm, MaxTaskAffectationModeForm, \
     MaxTaskAffectationCategoryForm, MaxTaskAffectationTaskMaximumCountForm, MaxTaskAffectationRangeTimeSliceForm, \
     AgentCategoryPreferencesBalancingOffsetTimeForm, MaxTimeAffectationTaskMaximumTimeForm, MaxTimeAffectationAddForm, \
-    CategoryBalancingToleranceTimeForm, CategoryBalancingToleranceNumberForm
+    CategoryBalancingToleranceTimeForm, CategoryBalancingToleranceNumberForm, AgentStartDateForm, AgentEndDateForm
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
     MaxTaskAffectation, MaxTimeTaskAffectation
 from autoplanner.utils import python_to_components
@@ -213,23 +216,58 @@ def set_agent_name(window_info, organization_pk: int, agent_pk: int, value: Seri
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_start_time')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_start_time')
 def set_agent_start_time(window_info, organization_pk: int, agent_pk: int, value: SerializedForm(AgentStartTimeForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
-    if can_update and value and value.is_valid():
-        start_time = value.cleaned_data['start_time']
-        Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).update(start_time=start_time)
+    agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
+    if can_update and agent and value and value.is_valid():
+        start_time = value.cleaned_data['start_time_1']
+        agent.start_time = (agent.start_time or datetime.datetime.now(tz=utc))\
+            .replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
+        agent.save()
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
     elif value:
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_end_time')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_end_time')
 def set_agent_end_time(window_info, organization_pk: int, agent_pk: int, value: SerializedForm(AgentEndTimeForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
-    if can_update and value and value.is_valid():
-        end_time = value.cleaned_data['end_time']
-        Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).update(end_time=end_time)
+    agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
+    if can_update and agent and value and value.is_valid():
+        end_time = value.cleaned_data['end_time_1']
+        agent.end_time = (agent.end_time or datetime.datetime.now(tz=utc))\
+            .replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
+        agent.save()
+        add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_start_date')
+def set_agent_start_date(window_info, organization_pk: int, agent_pk: int, value: SerializedForm(AgentStartDateForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
+    if can_update and agent and value and value.is_valid():
+        start_time = value.cleaned_data['start_time_0']
+
+        agent.start_time = (agent.start_time or datetime.datetime(1970, 1, 1, hour=0, minute=0, second=0, tzinfo=utc))\
+            .replace(year=start_time.year, month=start_time.month, day=start_time.day)
+        agent.save()
+        add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_end_date')
+def set_agent_end_date(window_info, organization_pk: int, agent_pk: int, value: SerializedForm(AgentEndDateForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
+    if can_update and agent and value and value.is_valid():
+        end_time = value.cleaned_data['end_time_0']
+        agent.end_time = (agent.end_time or datetime.datetime(1970, 1, 1, hour=0, minute=0, second=0, tzinfo=utc))\
+            .replace(year=end_time.year, month=end_time.month, day=end_time.day)
+        agent.save()
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
     elif value:
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')

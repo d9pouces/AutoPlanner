@@ -4,24 +4,22 @@
         <i class="fa" id="check_agent_{{ obj.id }}"></i>
     </td>
     <td>
-        <input type="text" class="form-control" id="id_name_{{ obj.id }}" name="name"
-               {% if obj.id %}onchange="$('#check_agent_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_agent_name', {organization_pk: {{ organization.id }}, agent_pk: {{ obj.id }}, value: $(this).serializeArray()})"{% endif %}
-               value="{{ obj.name }}">
-
+        <input type="text" class="form-control" id="id_name_{{ obj.id }}" name="name" {% if obj.id %}onchange="agent_u('set_agent_name', {{ obj.id }}, this);"{% endif %} value="{{ obj.name }}">
     </td>
-    <td>
-        <input type="datetime-local" class="form-control" id="id_start_time_{{ obj.id }}" name="start_time"
-               {% if obj.id %}onchange="$('#check_agent_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_agent_start_time', {organization_pk: {{ organization.id }}, agent_pk: {{ obj.id }}, value: $(this).serializeArray()})"{% endif %}
-               value="{% if obj.start_time %}{{ obj.start_time }}{% endif %}">
-    </td>
-    <td>
-        <input type="datetime-local" class="form-control" id="id_end_time_{{ obj.id }}" name="end_time"
-               {% if obj.id %}onchange="$('#check_agent_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_agent_end_time', {organization_pk: {{ organization.id }}, agent_pk: {{ obj.id }}, value: $(this).serializeArray()})"{% endif %}
-               value="{% if obj.end_time %}{{ obj.end_time }}{% endif %}">
-    </td>
+    <td>{% if obj.id %}<p class="datetime">
+  {% trans 'Date' %}&nbsp;: <input type="text" name="start_time_0" value="{{ obj.start_time|input_date }}" class="form-control vDateField" size="10" onchange="agent_u('set_agent_start_date', {{ obj.id }}, this);" onfocus="agent_u('set_agent_start_date', {{ obj.id }}, this);">
+<br>
+  {% trans 'Time' %}&nbsp;: <input type="text" name="start_time_1" value="{{ obj.start_time|input_time }}" class="form-control vTimeField" size="8" onchange="agent_u('set_agent_start_time', {{ obj.id }}, this);" onfocus="agent_u('set_agent_start_time', {{ obj.id }}, this);">
+</p>{% endif %}</td>
+    <td>{% if obj.id %}<p class="datetime">
+  {% trans 'Date' %}&nbsp;: <input type="text" name="end_time_0" value="{{ obj.end_time|input_date }}" class="form-control vDateField" size="10" onchange="agent_u('set_agent_end_date', {{ obj.id }}, this);" onfocus="agent_u('set_agent_end_date', {{ obj.id }}, this);">
+<br>
+  {% trans 'Time' %}&nbsp;: <input type="text" name="end_time_1" value="{{ obj.end_time|input_time }}" class="form-control vTimeField" size="8" onchange="agent_u('set_agent_end_time', {{ obj.id }}, this);" onfocus="agent_u('set_agent_end_time', {{ obj.id }}, this);">
+</p>
+    {% endif %}</td>
     <td>{% if obj.id %}
     <button class="btn btn-sm btn-info"
-            onclick="$('#check_agent_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.show_agent_infos', {organization_pk: {{ organization.id }}, agent_pk: {{ obj.id }} })">
+            onclick="return agent_u('show_agent_infos', {{ obj.id }});">
         <i class="fa fa-plus-circle"></i>
     </button>{% else %}&nbsp;{%endif %}
     </td>

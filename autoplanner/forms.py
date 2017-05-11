@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-import re
 from django import forms
-from django.contrib.admin.widgets import AdminDateWidget
-from django.core.exceptions import ValidationError
+from django.contrib.admin.widgets import AdminDateWidget, AdminSplitDateTime, AdminTimeWidget
 from django.core.validators import RegexValidator
-from django.utils import formats
 from django.utils.translation import ugettext_lazy as _
 
 from autoplanner.models import Task, default_day_start, Category, MaxTaskAffectation
@@ -17,8 +14,7 @@ class MultiplyTaskForm(forms.Form):
     source_task = forms.ModelChoiceField(queryset=Task.objects.all(),
                                          widget=forms.HiddenInput())
     until = forms.DateTimeField(label=_('Duplicate this task until'), initial=default_day_start,
-                                widget=AdminDateWidget()
-                                )
+                                widget=AdminSplitDateTime())
     every = forms.IntegerField(label=_('Days between successive task starts'), min_value=1, initial=7)
 
 
@@ -77,17 +73,26 @@ class AgentNameForm(forms.Form):
     name = forms.CharField(label=_('Name'), max_length=500, min_length=1)
 
 
+class AgentStartDateForm(forms.Form):
+    start_time_0 = forms.DateField(label=_('Arrival time'), required=False, widget=AdminDateWidget())
+
+
+class AgentEndDateForm(forms.Form):
+    end_time_0 = forms.DateField(label=_('Leaving time'), required=False, widget=AdminDateWidget())
+
+
 class AgentStartTimeForm(forms.Form):
-    start_time = forms.DateTimeField(label=_('Arrival time'), required=False)
+    start_time_1 = forms.TimeField(label=_('Arrival time'), required=False, widget=AdminTimeWidget())
 
 
 class AgentEndTimeForm(forms.Form):
-    end_time = forms.DateTimeField(label=_('Leaving time'), required=False)
+    end_time_1 = forms.TimeField(label=_('Leaving time'), required=False, widget=AdminTimeWidget())
 
 
 class AgentAddForm(forms.Form):
     name = forms.CharField(label=_('Name'), max_length=500, min_length=1)
-    start_time = forms.DateTimeField(label=_('Arrival time'), required=False)
+    start_time = forms.DateTimeField(label=_('Arrival time'), required=False, widget=AdminSplitDateTime())
+    end_time = forms.DateTimeField(label=_('Leaving time'), required=False, widget=AdminSplitDateTime())
 
 
 class AgentCategoryPreferencesAffinityForm(forms.Form):

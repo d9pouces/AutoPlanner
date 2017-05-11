@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from django import template
+from django.forms import TimeInput, DateInput
+from django.utils import formats
 from django.utils.safestring import mark_safe
 
 from autoplanner.utils import python_to_str
@@ -17,3 +19,17 @@ def my_simple_str(x):
 @register.filter
 def timedelta(x):
     return mark_safe(python_to_str(x))
+
+
+@register.filter
+def input_time(value):
+    if value is None:
+        return mark_safe('')
+    return mark_safe(formats.localize_input(value, formats.get_format(TimeInput.format_key)[0]))
+
+
+@register.filter
+def input_date(value):
+    if value is None:
+        return mark_safe('')
+    return mark_safe(formats.localize_input(value, formats.get_format(DateInput.format_key)[0]))
