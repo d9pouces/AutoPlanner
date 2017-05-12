@@ -2,9 +2,11 @@
 import datetime
 
 from django.utils.timezone import utc
-from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm
+from django.utils.translation import ugettext as _
+from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm, Choice
 from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER, modal_show
-from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before, focus
+from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before, focus, \
+    content
 from djangofloor.wsgi.window_info import render_to_string
 
 from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTokenForm, OrganizationMaxComputeTimeForm, \
@@ -14,9 +16,11 @@ from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTok
     AgentCategoryPreferencesBalancingCountForm, MaxTaskAffectationAddForm, MaxTaskAffectationModeForm, \
     MaxTaskAffectationCategoryForm, MaxTaskAffectationTaskMaximumCountForm, MaxTaskAffectationRangeTimeSliceForm, \
     AgentCategoryPreferencesBalancingOffsetTimeForm, MaxTimeAffectationTaskMaximumTimeForm, MaxTimeAffectationAddForm, \
-    CategoryBalancingToleranceTimeForm, CategoryBalancingToleranceNumberForm, AgentStartDateForm, AgentEndDateForm
+    CategoryBalancingToleranceTimeForm, CategoryBalancingToleranceNumberForm, AgentStartDateForm, AgentEndDateForm, \
+    TaskNameForm, TaskStartTimeForm, TaskEndTimeForm, TaskStartDateForm, TaskEndDateForm, TaskAgentForm, \
+    TaskCategoriesForm
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
-    MaxTaskAffectation, MaxTimeTaskAffectation
+    MaxTaskAffectation, MaxTimeTaskAffectation, Task
 from autoplanner.utils import python_to_components
 
 __author__ = 'Matthieu Gallet'
@@ -26,7 +30,7 @@ __author__ = 'Matthieu Gallet'
 def change_tab(window_info, organization_pk: int, tab_name: str):
     obj = Organization.query(window_info).filter(pk=organization_pk).first()
     fn = {'general': change_tab_general, 'categories': change_tab_categories,
-          'agents': change_tab_agents, 'balancing': change_tab_balancing,
+          'agents': change_tab_agents, 'balancing': change_tab_balancing, 'tasks': change_tab_tasks,
           }.get(tab_name)
     if fn:
         fn(window_info, obj)
@@ -61,6 +65,25 @@ def change_tab_balancing(window_info, organization):
                'new_max_task_affectation': MaxTaskAffectation(),
                'new_max_time_affectation': MaxTimeTaskAffectation()}
     render_to_client(window_info, 'autoplanner/tabs/balancing.html', context, '#balancing')
+
+
+def change_tab_tasks(window_info, organization, order_by: Choice(Task.orders) = 'start_time',
+                     agent_id: int = None, category_id: int = None):
+    task_queryset = list(Task.objects.filter(organization=organization).select_related('agent').order_by(order_by))
+    if agent_id:
+        task_queryset = task_queryset.filter(agent__id=agent_id)
+    if category_id:
+        task_queryset = task_queryset.filter(category__id=agent_id)
+    categories = list(Category.objects.filter(organization=organization).order_by('name'))
+    agents = list(Agent.objects.filter(organization=organization).order_by('name'))
+    affected_categories = {}
+    for task_category in Task.categories.through.objects.filter(category__id__in=[x.id for x in categories]):
+        affected_categories.setdefault(task_category.task_id, set()).add(task_category.category_id)
+    tasks_categories = [(task, affected_categories.get(task.id)) for task in task_queryset]
+    context = {'organization': organization, 'tasks_categories': tasks_categories, 'categories': categories,
+               'agents': agents, 'agent_id': agent_id, 'order_by': order_by, 'category_id': category_id,
+               'new_task': Task(), 'empty_set': set()}
+    render_to_client(window_info, 'autoplanner/tabs/tasks.html', context, '#tasks')
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_description')
@@ -222,7 +245,7 @@ def set_agent_start_time(window_info, organization_pk: int, agent_pk: int, value
     agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
     if can_update and agent and value and value.is_valid():
         start_time = value.cleaned_data['start_time_1']
-        agent.start_time = (agent.start_time or datetime.datetime.now(tz=utc))\
+        agent.start_time = (agent.start_time or datetime.datetime.now(tz=utc)) \
             .replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
         agent.save()
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
@@ -236,7 +259,7 @@ def set_agent_end_time(window_info, organization_pk: int, agent_pk: int, value: 
     agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
     if can_update and agent and value and value.is_valid():
         end_time = value.cleaned_data['end_time_1']
-        agent.end_time = (agent.end_time or datetime.datetime.now(tz=utc))\
+        agent.end_time = (agent.end_time or datetime.datetime.now(tz=utc)) \
             .replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
         agent.save()
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
@@ -251,7 +274,7 @@ def set_agent_start_date(window_info, organization_pk: int, agent_pk: int, value
     if can_update and agent and value and value.is_valid():
         start_time = value.cleaned_data['start_time_0']
 
-        agent.start_time = (agent.start_time or datetime.datetime(1970, 1, 1, hour=0, minute=0, second=0, tzinfo=utc))\
+        agent.start_time = (agent.start_time or datetime.datetime(1970, 1, 1, hour=0, minute=0, second=0, tzinfo=utc)) \
             .replace(year=start_time.year, month=start_time.month, day=start_time.day)
         agent.save()
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
@@ -265,7 +288,7 @@ def set_agent_end_date(window_info, organization_pk: int, agent_pk: int, value: 
     agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
     if can_update and agent and value and value.is_valid():
         end_time = value.cleaned_data['end_time_0']
-        agent.end_time = (agent.end_time or datetime.datetime(1970, 1, 1, hour=0, minute=0, second=0, tzinfo=utc))\
+        agent.end_time = (agent.end_time or datetime.datetime(1970, 1, 1, hour=0, minute=0, second=0, tzinfo=utc)) \
             .replace(year=end_time.year, month=end_time.month, day=end_time.day)
         agent.save()
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
@@ -640,3 +663,106 @@ def remove_max_time_affectation(window_info, organization_pk: int, max_time_affe
         MaxTimeTaskAffectation.objects \
             .filter(organization__id=organization_pk, id=max_time_affectation_pk).delete()
         remove(window_info, '#row_max_time_affectation_%s' % max_time_affectation_pk)
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_name')
+def set_task_name(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskNameForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update and value and value.is_valid():
+        name = value.cleaned_data['name']
+        Task.objects.filter(organization__id=organization_pk, pk=task_pk).update(name=name)
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_start_time')
+def set_task_start_time(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskStartTimeForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).first()
+    if can_update and task and value and value.is_valid():
+        start_time = value.cleaned_data['start_time_1']
+        task.start_time = task.start_time.replace(hour=start_time.hour, minute=start_time.minute,
+                                                  second=start_time.second)
+        task.save()
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_end_time')
+def set_task_end_time(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskEndTimeForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).first()
+    if can_update and task and value and value.is_valid():
+        end_time = value.cleaned_data['end_time_1']
+        task.end_time = task.end_time.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
+        task.save()
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_start_date')
+def set_task_start_date(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskStartDateForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).first()
+    if can_update and task and value and value.is_valid():
+        start_time = value.cleaned_data['start_time_0']
+        task.start_time = task.start_time.replace(year=start_time.year, month=start_time.month, day=start_time.day)
+        task.save()
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_end_date')
+def set_task_end_date(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskEndDateForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).first()
+    if can_update and task and value and value.is_valid():
+        end_time = value.cleaned_data['end_time_0']
+        task.end_time = task.end_time.replace(year=end_time.year, month=end_time.month, day=end_time.day)
+        task.save()
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_agent')
+def set_task_agent(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskAgentForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).select_related('agent').first()
+    if can_update and task and value and value.is_valid():
+        agent = value.cleaned_data['agent']
+        if agent:
+            Task.objects.filter(organization__id=organization_pk, pk=task_pk).update(fixed=True, agent=agent)
+        else:
+            Task.objects.filter(organization__id=organization_pk, pk=task_pk).update(fixed=False)
+        if agent is None and task.agent:
+            content(window_info, '#row_task_%s small.agent' % task_pk, _('Proposed to %(name)s') % {'name': task.agent.name})
+        elif agent or task.agent is None:
+            content(window_info, '#row_task_%s small.agent' % task_pk, '')
+
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_categories')
+def set_task_categories(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskCategoriesForm)):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).select_related('agent').first()
+    if can_update and task and value and value.is_valid():
+        task.categories = value.cleaned_data['categories']
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-check')
+    elif value:
+        add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.filter_tasks')
+def filter_tasks(window_info, organization_pk: int, order_by: Choice(Task.orders) = 'start_time',
+                 agent_id: int = None, category_id: int = None):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if organization:
+        change_tab_tasks(window_info, organization, order_by=order_by, agent_id=agent_id, category_id=category_id)

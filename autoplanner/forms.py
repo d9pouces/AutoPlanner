@@ -4,7 +4,7 @@ from django.contrib.admin.widgets import AdminDateWidget, AdminSplitDateTime, Ad
 from django.core.validators import RegexValidator
 from django.utils.translation import ugettext_lazy as _
 
-from autoplanner.models import Task, default_day_start, Category, MaxTaskAffectation
+from autoplanner.models import Task, default_day_start, Category, MaxTaskAffectation, Agent
 from autoplanner.utils import TimeDeltaField
 
 __author__ = 'Matthieu Gallet'
@@ -155,3 +155,39 @@ class MaxTimeAffectationAddForm(forms.Form):
                              initial=MaxTaskAffectation.MAXIMUM)
     range_time_slice = TimeDeltaField(label=_('Period length (days)'), initial='2d')
     task_maximum_time = TimeDeltaField(label=_('Number of tasks in this range'), initial='12:00')
+
+
+class TaskNameForm(forms.Form):
+    name = forms.CharField(label=_('Name'), max_length=500, min_length=1)
+
+
+class TaskStartTimeForm(forms.Form):
+    start_time_1 = forms.TimeField(label=_('Arrival time'), widget=AdminTimeWidget())
+
+
+class TaskStartDateForm(forms.Form):
+    start_time_0 = forms.DateField(label=_('Arrival time'), widget=AdminDateWidget())
+
+
+class TaskEndTimeForm(forms.Form):
+    end_time_1 = forms.TimeField(label=_('Arrival time'), widget=AdminTimeWidget())
+
+
+class TaskEndDateForm(forms.Form):
+    end_time_0 = forms.DateField(label=_('Arrival time'), widget=AdminDateWidget())
+
+
+class TaskAgentForm(forms.Form):
+    agent = forms.ModelChoiceField(queryset=Agent.objects.all(), required=False)
+
+
+class TaskCategoriesForm(forms.Form):
+    categories = forms.ModelMultipleChoiceField(queryset=Category.objects.all(), required=False)
+
+
+class TaskAddForm(forms.Form):
+    name = forms.CharField(label=_('Name'), max_length=500, min_length=1)
+    start_time = forms.DateTimeField(label=_('Arrival time'), required=False, widget=AdminSplitDateTime())
+    end_time = forms.DateTimeField(label=_('Leaving time'), required=False, widget=AdminSplitDateTime())
+    agent = forms.ModelChoiceField(queryset=Agent.objects.all(), required=False)
+    categories = forms.ModelMultipleChoiceField(queryset=Category.objects.all(), required=False)

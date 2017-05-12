@@ -33,3 +33,10 @@ def input_date(value):
     if value is None:
         return mark_safe('')
     return mark_safe(formats.localize_input(value, formats.get_format(DateInput.format_key)[0]))
+
+
+@register.filter
+def js_value(value):
+    if value is None:
+        return mark_safe('null')
+    return mark_safe(repr(value))

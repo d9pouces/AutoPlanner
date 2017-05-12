@@ -10,7 +10,7 @@
     </td>
     <td>
         <select class="form-control" id="id_balancing_mode_{{ obj.id }}" name="balancing_mode"
-                onchange="$('#check_category_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_balancing_mode', {organization_pk: {{ organization.id }}{% if obj.id %}, category_pk: {{ obj.id }}{% endif %}, value: $(this).serializeArray()})">
+                {% if obj.id %}onchange="$('#check_category_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_balancing_mode', {organization_pk: {{ organization.id }}{% if obj.id %}, category_pk: {{ obj.id }}{% endif %}, value: $(this).serializeArray()})"{% endif %}>
             {% for x in balancing_modes %}
             <option value{% if x.0 %}="{{ x.0 }}" {% endif %} {% if obj.balancing_mode == x.0 %}selected="selected" {% endif %}>{{ x.1 }}
             </option>

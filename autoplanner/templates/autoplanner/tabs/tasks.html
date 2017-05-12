@@ -1,0 +1,52 @@
+{% load i18n bootstrap3 %}
+<div class="row">
+    <div class="col-md-10 col-lg-10 col-sm-12">
+        <p class="well">{% blocktrans %}Finally, you need to define your tasks.
+
+            The schedule will determine how to dispatch them to resources will respecting your constraints, if such a
+            solution exists.
+            {% endblocktrans %}
+        </p>
+
+        <table class="table table-stripped" id="resource-table">
+            <tr>
+                <th>&nbsp;</th>
+                <th>{% trans 'The task…' %}</th>
+                <th>{% trans 'begins at…' %}</th>
+                <th>{% trans 'and ends at…' %}</th>
+                <th>{% trans 'belongs to…' %}</th>
+                <th>{% trans 'and is affected to:' %}</th>
+                <th>&nbsp;</th>
+            </tr>
+            {% for obj_with_categories in tasks_categories %}
+            {% with obj=obj_with_categories.0 obj_categories=obj_with_categories.1 %}
+            {% include 'autoplanner/include/task.html' %}
+            {% endwith %}
+            {% endfor %}
+            {% with obj=new_task obj_categories=empty_set %}
+            {% include 'autoplanner/include/task.html' %}
+            {% endwith %}
+        </table>
+        <script type="application/javascript">
+    django.jQuery = $;
+    window.DateTimeShortcuts.init();
+
+        </script>
+    </div>
+    <div class="col-md-2 col-lg-2 col-sm-12">
+        <ul class="list-group">
+            <li class="list-group-item active">{% trans 'By category' %}</li>
+            <li class="list-group-item">{% trans 'all categories' %}</li>
+            {% for x in categories %}
+            <li class="list-group-item">{{ x.name }}</li>
+            {% endfor %}
+        </ul>
+        <ul class="list-group">
+            <li class="list-group-item active">{% trans 'By agent' %}</li>
+            <li class="list-group-item">{% trans 'all agents' %}</li>
+            {% for x in agents %}
+            <li class="list-group-item">{{ x.name }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
