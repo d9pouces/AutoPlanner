@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import datetime
+import re
 
 from django.utils.timezone import utc
 from django.utils.translation import ugettext as _
 from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm, Choice
-from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER, modal_show
+from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER, modal_show, INFO, modal_hide
 from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before, focus, \
     content
 from djangofloor.wsgi.window_info import render_to_string
@@ -18,7 +19,7 @@ from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTok
     AgentCategoryPreferencesBalancingOffsetTimeForm, MaxTimeAffectationTaskMaximumTimeForm, MaxTimeAffectationAddForm, \
     CategoryBalancingToleranceTimeForm, CategoryBalancingToleranceNumberForm, AgentStartDateForm, AgentEndDateForm, \
     TaskNameForm, TaskStartTimeForm, TaskEndTimeForm, TaskStartDateForm, TaskEndDateForm, TaskAgentForm, \
-    TaskCategoriesForm
+    TaskCategoriesForm, TaskAddForm, TaskMultiplyForm
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
     MaxTaskAffectation, MaxTimeTaskAffectation, Task
 from autoplanner.utils import python_to_components
@@ -69,7 +70,8 @@ def change_tab_balancing(window_info, organization):
 
 def change_tab_tasks(window_info, organization, order_by: Choice(Task.orders) = 'start_time',
                      agent_id: int = None, category_id: int = None):
-    task_queryset = list(Task.objects.filter(organization=organization).select_related('agent').order_by(order_by))
+    task_queryset = list(Task.objects.filter(organization=organization)
+                         .select_related('agent', 'task_serie').order_by(order_by))
     if agent_id:
         task_queryset = task_queryset.filter(agent__id=agent_id)
     if category_id:
@@ -760,9 +762,96 @@ def set_task_categories(window_info, organization_pk: int, task_pk: int, value: 
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
 
 
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_task')
+def add_task(window_info, organization_pk: int, value: SerializedForm(TaskAddForm)):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if organization and value and value.is_valid():
+        agent = value.cleaned_data['agent']
+        available_category_ids = {x[0] for x in Category.objects.filter(organization=organization).values_list('id')}
+        task = Task(organization=organization, name=value.cleaned_data['name'],
+                    start_time=value.cleaned_data['start_time'], end_time=value.cleaned_data['end_time'], agent=agent,
+                    fixed=bool(agent))
+        task.save()
+        obj_categories = [x for x in value.cleaned_data['categories'] if x.id in available_category_ids]
+        task.categories = obj_categories
+        categories = list(Category.objects.filter(organization=organization).order_by('name'))
+        agents = list(Agent.objects.filter(organization=organization).order_by('name'))
+        context = {'organization': organization, 'obj': task, 'obj_categories': {x.id for x in obj_categories},
+                   'agents': agents, 'categories': categories, }
+        content_str = render_to_string('autoplanner/include/task.html', context=context,
+                                       window_info=window_info)
+        before(window_info, '#row_task_None', content_str)
+        focus(window_info, '#row_task_None')
+    elif value and not value.is_valid():
+        notify(window_info, value.errors, style=NOTIFICATION, level=DANGER)
+    add_attribute(window_info, '#check_max_time_affectation_None', 'class', 'fa')
+    focus(window_info, '#id_name_None')
+
+
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.filter_tasks')
 def filter_tasks(window_info, organization_pk: int, order_by: Choice(Task.orders) = 'start_time',
                  agent_id: int = None, category_id: int = None):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if organization:
         change_tab_tasks(window_info, organization, order_by=order_by, agent_id=agent_id, category_id=category_id)
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiply')
+def task_multiply(window_info, organization_pk: int, task_pk: int, form: SerializedForm(TaskMultiplyForm)=None):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    obj = Task.objects.filter(organization__id=organization_pk, pk=task_pk).first()
+    if not organization or not obj:
+        return
+    if form and form.is_valid():
+        until_src = form.cleaned_data['until']
+        every_src = form.cleaned_data['every']
+        if obj.task_serie:
+            task_serie = obj.task_serie
+        else:
+            obj.task_serie = obj
+            obj.save()
+            task_serie = obj
+        assert isinstance(until_src, datetime.datetime)
+        limit = datetime.datetime(year=until_src.year, month=until_src.month, day=until_src.day,
+                                  hour=23, minute=59, second=59, tzinfo=obj.start_time.tzinfo)
+        tasks_to_create = []
+        increment = datetime.timedelta(days=every_src)
+        start_time = obj.start_time + increment
+        end_time = obj.end_time + increment
+        matcher = re.match(r'^(.*)\s+\((\d+)\)', obj.name)
+        if matcher:
+            new_name = matcher.group(1)
+            name_index = int(matcher.group(2)) + 1
+        else:
+            new_name = obj.name
+            name_index = 2
+        current_category_pks = [x.pk for x in obj.categories.all()]
+        while start_time < limit:
+            new_task = Task(organization_id=obj.organization_id, name='%s (%d)' % (new_name, name_index),
+                            start_time=start_time, end_time=end_time, task_serie=task_serie)
+            tasks_to_create.append(new_task)
+            start_time += increment
+            end_time += increment
+            name_index += 1
+        if tasks_to_create:
+            if current_category_pks:
+                cls = Task.categories.through
+                all_categories_to_create = []
+                for new_task in tasks_to_create:
+                    new_task.save()
+                    all_categories_to_create += [cls(task_id=new_task.pk, category_id=category_pk)
+                                                 for category_pk in current_category_pks]
+                cls.objects.bulk_create(all_categories_to_create)
+            else:
+                Task.objects.bulk_create(tasks_to_create)
+        if len(tasks_to_create) > 1:
+            notify(window_info, _('%(count)d tasks have been created.') % {'count': len(tasks_to_create)}, level=INFO)
+        elif tasks_to_create:
+            notify(window_info, _('A task has been created.'), level=INFO)
+        modal_hide(window_info)
+        return
+    elif not form:
+        form = TaskMultiplyForm()
+    context = {'task': obj, 'organization': organization, 'form': form}
+    content_str = render_to_string('autoplanner/include/task_multiply.html', context=context, window_info=window_info)
+    modal_show(window_info, content_str)

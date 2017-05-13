@@ -1,4 +1,4 @@
-{% load i18n bootstrap3 %}
+{% load i18n bootstrap3 autoplanner %}
 <div class="row">
     <div class="col-md-10 col-lg-10 col-sm-12">
         <p class="well">{% blocktrans %}Finally, you need to define your tasks.
@@ -16,6 +16,7 @@
                 <th>{% trans 'and ends at…' %}</th>
                 <th>{% trans 'belongs to…' %}</th>
                 <th>{% trans 'and is affected to:' %}</th>
+                <th>&nbsp;</th>
                 <th>&nbsp;</th>
             </tr>
             {% for obj_with_categories in tasks_categories %}
@@ -38,14 +39,14 @@
             <li class="list-group-item active">{% trans 'By category' %}</li>
             <li class="list-group-item">{% trans 'all categories' %}</li>
             {% for x in categories %}
-            <li class="list-group-item">{{ x.name }}</li>
+            <li class="list-group-item"><a onclick="return $.df.call('autoplanner.forms.filter_tasks', {organization_pk: {{ organization.id }}, order_by: {{ order_by|js_value }}, agent_id: {{ agent_id|js_value }}, category_id: {{ x.id|js_value }} });">{{ x.name }}</a></li>
             {% endfor %}
         </ul>
         <ul class="list-group">
             <li class="list-group-item active">{% trans 'By agent' %}</li>
             <li class="list-group-item">{% trans 'all agents' %}</li>
             {% for x in agents %}
-            <li class="list-group-item">{{ x.name }}</li>
+            <li class="list-group-item"><a onclick="return $.df.call('autoplanner.forms.filter_tasks', {organization_pk: {{ organization.id }}, order_by: {{ order_by|js_value }}, agent_id: {{ x.id|js_value }}, category_id: {{ category_id|js_value }} });">{{ x.name }}</a></li>
             {% endfor %}
         </ul>
     </div>

@@ -254,3 +254,6 @@ input.form-control.vDateField, input.form-control.vTimeField {
     width: 7em;
     font-weight: normal;
 }
+table.datetime {
+    width: 100%;
+}

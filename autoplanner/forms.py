@@ -187,7 +187,13 @@ class TaskCategoriesForm(forms.Form):
 
 class TaskAddForm(forms.Form):
     name = forms.CharField(label=_('Name'), max_length=500, min_length=1)
-    start_time = forms.DateTimeField(label=_('Arrival time'), required=False, widget=AdminSplitDateTime())
-    end_time = forms.DateTimeField(label=_('Leaving time'), required=False, widget=AdminSplitDateTime())
+    start_time = forms.SplitDateTimeField(label=_('Starting time'), widget=AdminSplitDateTime())
+    end_time = forms.SplitDateTimeField(label=_('End time'), widget=AdminSplitDateTime())
     agent = forms.ModelChoiceField(queryset=Agent.objects.all(), required=False)
     categories = forms.ModelMultipleChoiceField(queryset=Category.objects.all(), required=False)
+
+
+class TaskMultiplyForm(forms.Form):
+    until = forms.SplitDateTimeField(label=_('Duplicate this task until'), initial=default_day_start,
+                                     widget=AdminSplitDateTime())
+    every = forms.IntegerField(label=_('Days between successive task starts'), min_value=1, initial=7)

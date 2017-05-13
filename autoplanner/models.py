@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 import datetime
 import random
+
 from django.conf import settings
 from django.core.validators import RegexValidator
-from django.urls import reverse
+from django.db import models
 from django.db.models import Q
-from django.utils.text import force_text
-
 from django.http import HttpRequest
+from django.urls import reverse
 from django.utils.formats import date_format, time_format
+from django.utils.text import force_text
 from django.utils.timezone import get_default_timezone
 from django.utils.translation import ugettext_lazy as _
-from django.db import models
-from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField
 
 API_KEY_VARIABLE = 'api_key'
 
@@ -209,8 +208,10 @@ class Task(OrganizationObject):
     name = models.CharField(_('Name'), db_index=True, max_length=500)
     start_time = models.DateTimeField(_('Start time'), db_index=True, default=default_day_start)
     end_time = models.DateTimeField(_('End time'), db_index=True, default=default_day_end)
-    agent = models.ForeignKey(Agent, db_index=True, null=True, default=None, blank=True)
+    agent = models.ForeignKey(Agent, db_index=True, null=True, default=None, blank=True, on_delete=models.CASCADE)
     fixed = models.BooleanField(_('Forced agent'), db_index=True, default=False)
+    task_serie = models.ForeignKey('self', db_index=True, null=True, default=None, on_delete=models.SET_NULL,
+                                   blank=True)
 
     class Meta(object):
         ordering = ('start_time', 'end_time',)
@@ -226,19 +227,8 @@ class Task(OrganizationObject):
 
 
 class AgentCategoryPreferences(OrganizationObject):
-    # category = models.ForeignKey(Category, db_index=True)
-    category = ChainedForeignKey(Category,
-                                 chained_field='organization',
-                                 chained_model_field='organization',
-                                 show_all=True, auto_choose=True, on_delete=models.CASCADE,
-                                 db_index=True)
-    # agent = models.ForeignKey(Agent, db_index=True)
-    agent = ChainedForeignKey(Agent,
-                              null=True, default=None, blank=True,
-                              chained_field='organization',
-                              chained_model_field='organization',
-                              show_all=True, auto_choose=True, on_delete=models.CASCADE,
-                              db_index=True)
+    category = models.ForeignKey(Category, db_index=True, on_delete=models.CASCADE)
+    agent = models.ForeignKey(Agent, db_index=True, on_delete=models.CASCADE)
     affinity = models.FloatField(_('Affinity of the agent for the category.'), default=0., blank=True)
     balancing_offset = models.FloatField(_('Number of time units already done'), default=0, blank=True)
     balancing_count = models.FloatField(_('If a task of this category performed by this agent counts twice, '
@@ -265,21 +255,9 @@ class AgentCategoryPreferences(OrganizationObject):
 
 
 class AgentTaskExclusion(OrganizationObject):
-    # agent = models.ForeignKey(Agent, db_index=True)
-    agent = ChainedForeignKey(Agent,
-                              null=True, default=None, blank=True,
-                              chained_field='organization',
-                              chained_model_field='organization',
-                              show_all=True, auto_choose=True, on_delete=models.CASCADE,
-                              db_index=True)
-    # task = models.ForeignKey(Task, db_index=True, verbose_name=_('Task'),
-    #                          help_text=_('Select the task that cannot be performed by the agent.'))
-    task = ChainedForeignKey(Task, verbose_name=_('Task'),
-                             null=True, default=None, blank=True,
-                             chained_field='organization',
-                             chained_model_field='organization',
-                             show_all=True, auto_choose=True, on_delete=models.CASCADE,
-                             db_index=True, help_text=_('Select the task that cannot be performed by the agent.'))
+    agent = models.ForeignKey(Agent, db_index=True, on_delete=models.CASCADE)
+    task = models.ForeignKey(Task, db_index=True, verbose_name=_('Task'), on_delete=models.CASCADE,
+                             help_text=_('Select the task that cannot be performed by the agent.'))
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):

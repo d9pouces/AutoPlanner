@@ -6,16 +6,14 @@
     <td>
         <input type="text" class="form-control" id="id_name_{{ obj.id }}" name="name" {% if obj.id %}onchange="agent_u('set_agent_name', {{ obj.id }}, this);"{% endif %} value="{{ obj.name }}">
     </td>
-    <td>{% if obj.id %}<p class="datetime">
-  {% trans 'Date' %}&nbsp;: <input type="text" name="start_time_0" value="{{ obj.start_time|input_date }}" class="form-control vDateField" size="10" onchange="agent_u('set_agent_start_date', {{ obj.id }}, this);" onfocus="agent_u('set_agent_start_date', {{ obj.id }}, this);">
-<br>
-  {% trans 'Time' %}&nbsp;: <input type="text" name="start_time_1" value="{{ obj.start_time|input_time }}" class="form-control vTimeField" size="8" onchange="agent_u('set_agent_start_time', {{ obj.id }}, this);" onfocus="agent_u('set_agent_start_time', {{ obj.id }}, this);">
-</p>{% endif %}</td>
-    <td>{% if obj.id %}<p class="datetime">
-  {% trans 'Date' %}&nbsp;: <input type="text" name="end_time_0" value="{{ obj.end_time|input_date }}" class="form-control vDateField" size="10" onchange="agent_u('set_agent_end_date', {{ obj.id }}, this);" onfocus="agent_u('set_agent_end_date', {{ obj.id }}, this);">
-<br>
-  {% trans 'Time' %}&nbsp;: <input type="text" name="end_time_1" value="{{ obj.end_time|input_time }}" class="form-control vTimeField" size="8" onchange="agent_u('set_agent_end_time', {{ obj.id }}, this);" onfocus="agent_u('set_agent_end_time', {{ obj.id }}, this);">
-</p>
+    <td>{% if obj.id %}<table class="datetime">
+<tr>  <td>{% trans 'Date' %}&nbsp;: <input type="text" name="start_time_0" value="{{ obj.start_time|input_date }}" class="form-control vDateField" size="10" onchange="agent_u('set_agent_start_date', {{ obj.id }}, this);" onfocus="agent_u('set_agent_start_date', {{ obj.id }}, this);"></td>
+  <td>{% trans 'Time' %}&nbsp;: <input type="text" name="start_time_1" value="{{ obj.start_time|input_time }}" class="form-control vTimeField" size="8" onchange="agent_u('set_agent_start_time', {{ obj.id }}, this);" onfocus="agent_u('set_agent_start_time', {{ obj.id }}, this);"></td>
+</tr></table>{% endif %}</td>
+    <td>{% if obj.id %}<table class="datetime">
+<tr>  <td>{% trans 'Date' %}&nbsp;: <input type="text" name="end_time_0" value="{{ obj.end_time|input_date }}" class="form-control vDateField" size="10" onchange="agent_u('set_agent_end_date', {{ obj.id }}, this);" onfocus="agent_u('set_agent_end_date', {{ obj.id }}, this);"></td>
+  <td>{% trans 'Time' %}&nbsp;: <input type="text" name="end_time_1" value="{{ obj.end_time|input_time }}" class="form-control vTimeField" size="8" onchange="agent_u('set_agent_end_time', {{ obj.id }}, this);" onfocus="agent_u('set_agent_end_time', {{ obj.id }}, this);"></td>
+</tr></table>
     {% endif %}</td>
     <td>{% if obj.id %}
     <button class="btn btn-sm btn-info"
