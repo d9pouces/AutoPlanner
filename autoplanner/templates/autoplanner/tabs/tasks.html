@@ -10,8 +10,7 @@
 
         <table class="table table-stripped" id="tasks_table">
             <tr>
-                <th><small><span class="datetimeshortcuts"><a href="#" onclick="return InverseSelection();">{% trans 'Select' %}</a></span></small>
-                </th>
+                <th><small><span class="datetimeshortcuts"><a href="#" onclick="return InverseSelection();">{% trans 'Select' %}</a></span></small></th>
                 <th>{% trans 'The task…' %}</th>
                 <th>{% trans 'begins at…' %}</th>
                 <th>{% trans 'and ends at…' %}</th>
@@ -20,6 +19,11 @@
                 <th colspan="2">
                     <small><span class="datetimeshortcuts"><a href="#" onclick="return $.df.call('autoplanner.forms.task_multiple_update_show', {organization_pk: {{ organization.id }} });">{% trans 'Update selection' %}</a> </span> </small>
                 </th>
+            </tr>
+            <tr>
+                <td colspan="7">
+                    <input class="form-control" value="{{ pattern }}" onchange="return callTask(undefined, undefined, undefined, this.value);" onsubmit="return callTask(undefined, undefined, undefined, this.value);" placeholder="{% trans 'Filter…' %}">
+                </td>
             </tr>
             {% for obj_with_categories in tasks_categories %}
             {% with obj=obj_with_categories.0 obj_categories=obj_with_categories.1 %}
@@ -34,17 +38,29 @@
     <div class="col-md-2 col-lg-2 col-sm-12">
         <ul class="list-group">
             <li class="list-group-item active">{% trans 'By category' %}</li>
-            <li id="by_category_None" class="filter-tasks list-group-item"><a href="#" onclick="return $.df.call('autoplanner.forms.filter_tasks', {organization_pk: {{ organization.id }}, order_by: {{ order_by|js_value }}, agent_id: {{ agent_id|js_value }}, category_id: null});">{% trans 'all categories' %}</a></li>
+            <li id="by_category_None" class="filter-tasks list-group-item"><a href="#" onclick="return callTask(undefined, undefined, null);">{% trans 'all categories' %}</a></li>
             {% for x in categories %}
-            <li id="by_category_{{ x.id }}" class="filter-tasks list-group-item"><a href="#" onclick="return $.df.call('autoplanner.forms.filter_tasks', {organization_pk: {{ organization.id }}, order_by: {{ order_by|js_value }}, agent_id: {{ agent_id|js_value }}, category_id: {{ x.id|js_value }} });">{{ x.name }}</a></li>
+            <li id="by_category_{{ x.id }}" class="filter-tasks list-group-item"><a href="#" onclick="return callTask(undefined, undefined, {{ x.id }});">{{ x.name }}</a></li>
             {% endfor %}
         </ul>
         <ul class="list-group">
             <li class="list-group-item active">{% trans 'By agent' %}</li>
-            <li id="by_agent_None" class="filter-tasks list-group-item"><a href="#" onclick="return $.df.call('autoplanner.forms.filter_tasks', {organization_pk: {{ organization.id }}, order_by: {{ order_by|js_value }}, agent_id: null, category_id: {{ category_id|js_value }} });">{% trans 'all agents' %}</a></li>
+            <li id="by_agent_None" class="filter-tasks list-group-item"><a href="#" onclick="return callTask(undefined, null);">{% trans 'all agents' %}</a></li>
             {% for x in agents %}
-            <li id="by_agent_{{ x.id }}" class="filter-tasks list-group-item"><a href="#" onclick="return $.df.call('autoplanner.forms.filter_tasks', {organization_pk: {{ organization.id }}, order_by: {{ order_by|js_value }}, agent_id: {{ x.id|js_value }}, category_id: {{ category_id|js_value }} });">{{ x.name }}</a></li>
+            <li id="by_agent_{{ x.id }}" class="filter-tasks list-group-item"><a href="#" onclick="callTask(undefined, {{ x.id }});">{{ x.name }}</a></li>
             {% endfor %}
         </ul>
     </div>
 </div>
+<script type="application/javascript">
+function callTask(order_by, agent_id, category_id, pattern, signal, kwargs) {
+    if (kwargs === undefined) kwargs = {}; 
+    kwargs.organization_pk = {{ organization.id }};
+    kwargs.order_by = order_by === undefined ? {{ order_by|js_value }} : order_by;
+    kwargs.pattern = pattern === undefined ? {{ pattern|js_value }} : pattern;
+    kwargs.agent_id = agent_id === undefined ? {{ agent_id|js_value }} : agent_id;
+    kwargs.category_id = category_id === undefined ? {{ category_id|js_value }} : category_id;
+    if (signal === undefined) signal = 'autoplanner.forms.filter_tasks';
+    return $.df.call(signal, kwargs);
+}
+</script>

@@ -75,13 +75,15 @@ def change_tab_balancing(window_info, organization):
 
 
 def change_tab_tasks(window_info, organization, order_by: Choice(Task.orders) = 'start_time',
-                     agent_id: int = None, category_id: int = None):
+                     agent_id: int = None, category_id: int = None, pattern: str=''):
     task_queryset = Task.objects.filter(organization=organization).select_related('agent', 'task_serie')\
         .order_by(order_by)
     if agent_id:
         task_queryset = task_queryset.filter(agent__id=agent_id)
     if category_id:
         task_queryset = task_queryset.filter(categories__id=category_id)
+    if pattern:
+        task_queryset = task_queryset.filter(name__icontains=pattern)
     task_queryset = list(task_queryset)
     categories = list(Category.objects.filter(organization=organization).order_by('name'))
     agents = list(Agent.objects.filter(organization=organization).order_by('name'))
@@ -91,7 +93,7 @@ def change_tab_tasks(window_info, organization, order_by: Choice(Task.orders) = 
     tasks_categories = [(task, affected_categories.get(task.id)) for task in task_queryset]
     context = {'organization': organization, 'tasks_categories': tasks_categories, 'categories': categories,
                'agents': agents, 'agent_id': agent_id, 'order_by': order_by, 'category_id': category_id,
-               'new_task': Task(), 'empty_set': set()}
+               'new_task': Task(), 'empty_set': set(), 'pattern': pattern}
     render_to_client(window_info, 'autoplanner/tabs/tasks.html', context, '#tasks')
     add_attribute(window_info, '.filter-tasks', 'class', 'filter-tasks list-group-item')
     add_attribute(window_info, '#by_agent_%s' % agent_id, 'class', 'filter-tasks list-group-item active')
@@ -800,10 +802,11 @@ def add_task(window_info, organization_pk: int, value: SerializedForm(TaskAddFor
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.filter_tasks')
 def filter_tasks(window_info, organization_pk: int, order_by: Choice(Task.orders) = 'start_time',
-                 agent_id: int_or_none = None, category_id: int_or_none = None):
+                 agent_id: int_or_none = None, category_id: int_or_none = None, pattern: str=''):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if organization:
-        change_tab_tasks(window_info, organization, order_by=order_by, agent_id=agent_id, category_id=category_id)
+        change_tab_tasks(window_info, organization, order_by=order_by, agent_id=agent_id, category_id=category_id,
+                         pattern=pattern)
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiply')
@@ -897,7 +900,9 @@ def task_multiple_update_show(window_info, organization_pk: int):
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiple_update')
-def task_multiple_update(window_info, organization_pk: int, form: SerializedForm(TaskMultipleUpdateForm)=None):
+def task_multiple_update(window_info, organization_pk: int, form: SerializedForm(TaskMultipleUpdateForm)=None,
+                         order_by: Choice(Task.orders) = 'start_time', agent_id: int_or_none = None,
+                         category_id: int_or_none = None, pattern: str=''):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if not organization:
         return
@@ -917,9 +922,11 @@ def task_multiple_update(window_info, organization_pk: int, form: SerializedForm
             Task.objects.filter(id__in=task_ids).update(**kwargs)
         if category_ids:
             cls = Task.categories.through
+            cls.objects.filter(task_id__in=task_ids).delete()
             all_categories_to_create = []
             for task_id in task_ids:
                 all_categories_to_create += [cls(task_id=task_id, category_id=pk) for pk in category_ids]
             cls.objects.bulk_create(all_categories_to_create)
-        modal_hide(window_info)
-
+        change_tab_tasks(window_info, organization, order_by=order_by, agent_id=agent_id, category_id=category_id,
+                         pattern=pattern)
+    modal_hide(window_info)
