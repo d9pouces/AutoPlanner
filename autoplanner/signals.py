@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import csv
 import datetime
 import re
 
+from django import forms
 from django.utils.timezone import utc
 from django.utils.translation import ugettext as _
 from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm, Choice
@@ -19,7 +21,7 @@ from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTok
     AgentCategoryPreferencesBalancingOffsetTimeForm, MaxTimeAffectationTaskMaximumTimeForm, MaxTimeAffectationAddForm, \
     CategoryBalancingToleranceTimeForm, CategoryBalancingToleranceNumberForm, AgentStartDateForm, AgentEndDateForm, \
     TaskNameForm, TaskStartTimeForm, TaskEndTimeForm, TaskStartDateForm, TaskEndDateForm, TaskAgentForm, \
-    TaskCategoriesForm, TaskAddForm, TaskMultiplyForm, TaskMultipleUpdateForm
+    TaskCategoriesForm, TaskAddForm, TaskMultiplyForm, TaskMultipleUpdateForm, TaskImportForm
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
     MaxTaskAffectation, MaxTimeTaskAffectation, Task
 from autoplanner.utils import python_to_components
@@ -75,8 +77,8 @@ def change_tab_balancing(window_info, organization):
 
 
 def change_tab_tasks(window_info, organization, order_by: Choice(Task.orders) = 'start_time',
-                     agent_id: int = None, category_id: int = None, pattern: str=''):
-    task_queryset = Task.objects.filter(organization=organization).select_related('agent', 'task_serie')\
+                     agent_id: int = None, category_id: int = None, pattern: str = ''):
+    task_queryset = Task.objects.filter(organization=organization).select_related('agent', 'task_serie') \
         .order_by(order_by)
     if agent_id:
         task_queryset = task_queryset.filter(agent__id=agent_id)
@@ -259,8 +261,11 @@ def set_agent_start_time(window_info, organization_pk: int, agent_pk: int, value
     agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
     if can_update and agent and value and value.is_valid():
         start_time = value.cleaned_data['start_time_1']
-        agent.start_time = (agent.start_time or datetime.datetime.now(tz=utc)) \
-            .replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
+        if start_time is None:
+            agent.start_time = None
+        else:
+            agent.start_time = (agent.start_time or datetime.datetime.now(tz=utc)) \
+                .replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
         agent.save()
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
     elif value:
@@ -273,8 +278,11 @@ def set_agent_end_time(window_info, organization_pk: int, agent_pk: int, value: 
     agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
     if can_update and agent and value and value.is_valid():
         end_time = value.cleaned_data['end_time_1']
-        agent.end_time = (agent.end_time or datetime.datetime.now(tz=utc)) \
-            .replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
+        if end_time is None:
+            agent.end_time = None
+        else:
+            agent.end_time = (agent.end_time or datetime.datetime.now(tz=utc)) \
+                .replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
         agent.save()
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
     elif value:
@@ -287,9 +295,12 @@ def set_agent_start_date(window_info, organization_pk: int, agent_pk: int, value
     agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
     if can_update and agent and value and value.is_valid():
         start_time = value.cleaned_data['start_time_0']
-
-        agent.start_time = (agent.start_time or datetime.datetime(1970, 1, 1, hour=0, minute=0, second=0, tzinfo=utc)) \
-            .replace(year=start_time.year, month=start_time.month, day=start_time.day)
+        if start_time is None:
+            agent.start_time = None
+        else:
+            agent.start_time = (agent.start_time or datetime.datetime(1970, 1, 1, hour=0, minute=0, second=0,
+                                                                      tzinfo=utc)) \
+                .replace(year=start_time.year, month=start_time.month, day=start_time.day)
         agent.save()
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
     elif value:
@@ -302,8 +313,11 @@ def set_agent_end_date(window_info, organization_pk: int, agent_pk: int, value: 
     agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
     if can_update and agent and value and value.is_valid():
         end_time = value.cleaned_data['end_time_0']
-        agent.end_time = (agent.end_time or datetime.datetime(1970, 1, 1, hour=0, minute=0, second=0, tzinfo=utc)) \
-            .replace(year=end_time.year, month=end_time.month, day=end_time.day)
+        if end_time is None:
+            agent.end_time = None
+        else:
+            agent.end_time = (agent.end_time or datetime.datetime(1970, 1, 1, hour=0, minute=0, second=0, tzinfo=utc)) \
+                .replace(year=end_time.year, month=end_time.month, day=end_time.day)
         agent.save()
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-check')
     elif value:
@@ -754,7 +768,8 @@ def set_task_agent(window_info, organization_pk: int, task_pk: int, value: Seria
         else:
             Task.objects.filter(organization__id=organization_pk, pk=task_pk).update(fixed=False)
         if agent is None and task.agent:
-            content(window_info, '#row_task_%s small.agent' % task_pk, _('Proposed to %(name)s') % {'name': task.agent.name})
+            content(window_info, '#row_task_%s small.agent' % task_pk,
+                    _('Proposed to %(name)s') % {'name': task.agent.name})
         elif agent or task.agent is None:
             content(window_info, '#row_task_%s small.agent' % task_pk, '')
 
@@ -802,7 +817,7 @@ def add_task(window_info, organization_pk: int, value: SerializedForm(TaskAddFor
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.filter_tasks')
 def filter_tasks(window_info, organization_pk: int, order_by: Choice(Task.orders) = 'start_time',
-                 agent_id: int_or_none = None, category_id: int_or_none = None, pattern: str=''):
+                 agent_id: int_or_none = None, category_id: int_or_none = None, pattern: str = ''):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if organization:
         change_tab_tasks(window_info, organization, order_by=order_by, agent_id=agent_id, category_id=category_id,
@@ -810,7 +825,7 @@ def filter_tasks(window_info, organization_pk: int, order_by: Choice(Task.orders
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiply')
-def task_multiply(window_info, organization_pk: int, task_pk: int, form: SerializedForm(TaskMultiplyForm)=None):
+def task_multiply(window_info, organization_pk: int, task_pk: int, form: SerializedForm(TaskMultiplyForm) = None):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     obj = Task.objects.filter(organization__id=organization_pk, pk=task_pk).first()
     add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa')
@@ -900,9 +915,9 @@ def task_multiple_update_show(window_info, organization_pk: int):
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiple_update')
-def task_multiple_update(window_info, organization_pk: int, form: SerializedForm(TaskMultipleUpdateForm)=None,
+def task_multiple_update(window_info, organization_pk: int, form: SerializedForm(TaskMultipleUpdateForm) = None,
                          order_by: Choice(Task.orders) = 'start_time', agent_id: int_or_none = None,
-                         category_id: int_or_none = None, pattern: str=''):
+                         category_id: int_or_none = None, pattern: str = ''):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if not organization:
         return
@@ -930,3 +945,76 @@ def task_multiple_update(window_info, organization_pk: int, form: SerializedForm
         change_tab_tasks(window_info, organization, order_by=order_by, agent_id=agent_id, category_id=category_id,
                          pattern=pattern)
     modal_hide(window_info)
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_import')
+def task_import(window_info, organization_pk: int, form: SerializedForm(TaskImportForm)=None,
+                order_by: Choice(Task.orders) = 'start_time', agent_id: int_or_none = None,
+                category_id: int_or_none = None, pattern: str = ''):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if not organization:
+        return
+    if form and form.is_valid():
+        csv_reader = csv.reader(form.cleaned_data['csv_content'].splitlines(), delimiter=';')
+        task_categories_to_create = []
+        categories = list(Category.objects.filter(organization=organization).order_by('name'))
+        agents = list(Agent.objects.filter(organization=organization).order_by('name'))
+        name_to_category = {x.name: x.id for x in categories}
+        name_to_agent = {x.name: x.id for x in agents}
+        cls = Task.categories.through
+        context = {'organization': organization, 'agents': agents, 'categories': categories, }
+        counter = 0
+        date_field, time_field = forms.DateField(), forms.TimeField()
+
+        def read_value(value, field):
+            try:
+                return field.to_python(value)
+            except ValueError:
+                notify(window_info, _('%(v)d is invalid.') % {'v': value}, level=DANGER)
+                return None
+
+        def combine(d, t):
+            if d is None or t is None:
+                return None
+            return datetime.datetime.combine(d, t).replace(tzinfo=utc)
+
+        for row in csv_reader:
+            if len(row) != 7:
+                continue
+            start_date, start_time = read_value(row[1], date_field), read_value(row[2], time_field)
+            end_date, end_time = read_value(row[3], date_field), read_value(row[4], time_field)
+            start = combine(start_date, start_time)
+            end = combine(end_date, end_time)
+            if start is None or end is None:
+                continue
+            category_ids = {name_to_category[x.strip()] for x in row[5].split('/') if x.strip() in name_to_category}
+            agent_id = name_to_agent.get(row[6].strip())
+            task = Task(name=row[0].strip(), fixed=bool(agent_id), agent_id=agent_id, start_time=start, end_time=end,
+                        organization_id=organization_pk)
+            task.save()
+            task_categories_to_create += [cls(task_id=task.pk, category_id=x) for x in category_ids]
+            context['obj_categories'] = category_ids
+            context['obj'] = task
+            content_str = render_to_string('autoplanner/include/task.html', context=context, window_info=window_info)
+            before(window_info, '#row_task_None', content_str)
+            counter += 1
+        cls.objects.bulk_create(task_categories_to_create)
+        if counter > 1:
+            notify(window_info, _('%(count)d tasks have been created.') % {'count': counter}, level=INFO)
+        elif counter:
+            notify(window_info, _('A task has been created.'), level=INFO)
+        modal_hide(window_info)
+
+        return
+    example_1 = datetime.datetime.now(tz=utc)
+    example_2 = datetime.datetime.now(tz=utc) + datetime.timedelta(days=7)
+    example_c = '/'.join([x[0] for x in Category.objects.filter(organization=organization).values_list('name')])
+    resources = list(Agent.objects.filter(organization=organization)[0:2].values_list('name'))
+    if resources:
+        example_a, example_b = resources[0][0], resources[-1][0]
+    else:
+        example_a, example_b = _('Resource A'), _('Resource B')
+    context = {'organization': organization, 'example_c': example_c, 'example_1': example_1, 'example_2': example_2,
+               'example_a': example_a, 'example_b': example_b}
+    content_str = render_to_string('autoplanner/include/task_import.html', context=context, window_info=window_info)
+    modal_show(window_info, content_str)

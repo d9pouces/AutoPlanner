@@ -205,3 +205,7 @@ class TaskMultipleUpdateForm(forms.Form):
     fix = forms.BooleanField(required=False)
     unfix = forms.BooleanField(required=False)
     tasks = forms.ModelMultipleChoiceField(queryset=Task.objects.all(), required=False)
+
+
+class TaskImportForm(forms.Form):
+    csv_content = forms.CharField(widget=forms.Textarea())

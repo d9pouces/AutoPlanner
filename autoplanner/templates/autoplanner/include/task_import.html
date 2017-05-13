@@ -1,0 +1,29 @@
+{% load i18n autoplanner %}
+<form id="taskMultiplyForm" onsubmit="return callTask(undefined, undefined, undefined, undefined, 'autoplanner.forms.task_import', {form: $(this).serializeArray()})">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title">{% trans 'Import tasks' %}</h4>
+    </div>
+    <div class="modal-body">
+        <p class="well">{% blocktrans %}You can import multiple tasks at a time.
+            <br>
+            Just enter one task by line, with starting and ending time, categories (multiple categories separated by slashes) and the resource name.
+            Invalid category names will be ignored.
+            <br>
+            {% endblocktrans %}</p>
+        {% trans 'Example: '%}
+<pre>{% trans 'Task 1' %};{{ example_1|input_date }};{{ example_1|input_time }};{{ example_2|input_date }};{{ example_2|input_time }};{{ example_c }};{{ example_b }}
+{% trans 'Task 2' %};{{ example_1|input_date }};{{ example_1|input_time }};{{ example_2|input_date }};{{ example_2|input_time }};;{{ example_a }}</pre>
+
+
+<textarea class="form-control" rows="10" name="csv_content" placeholder="{% trans 'Please enter the tasks to enter, following the format as described above.' %}"></textarea>
+    </div>
+    <div class="modal-footer">
+        <div class="btn-group">
+            <input type="submit" class="btn btn-success" value="{% trans 'Import these tasks' %}"/>
+            <button type="button" class="btn btn-default" data-dismiss="modal">{% trans 'Close' %}</button>
+        </div>
+    </div>
+</form>
