@@ -7,7 +7,8 @@ __author__ = 'Matthieu Gallet'
 ########################################################################################################################
 
 DF_INSTALLED_APPS = ['autoplanner', 'smart_selects']
-DF_JS = ['admin/js/core.js', 'admin/js/calendar.js', 'admin/js/admin/DateTimeShortcuts.js']
+DF_JS = ['admin/js/core.js', 'admin/js/calendar.js', 'admin/js/admin/DateTimeShortcuts.js',
+         'autoplanner/js/autoplanner.js']
 DF_CSS = ['autoplanner/css/autoplanner.css']
 FLOOR_INDEX = 'autoplanner.views.index'
 DF_PROJECT_NAME = 'AutoPlanner'

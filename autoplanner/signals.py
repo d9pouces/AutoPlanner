@@ -27,6 +27,12 @@ from autoplanner.utils import python_to_components
 __author__ = 'Matthieu Gallet'
 
 
+def int_or_none(value):
+    if value is None or value == '':
+        return value
+    return int(value)
+
+
 @signal(is_allowed_to=everyone, path='autoplanner.change_tab', queue='fast')
 def change_tab(window_info, organization_pk: int, tab_name: str):
     obj = Organization.query(window_info).filter(pk=organization_pk).first()
@@ -70,12 +76,12 @@ def change_tab_balancing(window_info, organization):
 
 def change_tab_tasks(window_info, organization, order_by: Choice(Task.orders) = 'start_time',
                      agent_id: int = None, category_id: int = None):
-    task_queryset = list(Task.objects.filter(organization=organization)
-                         .select_related('agent', 'task_serie').order_by(order_by))
+    task_queryset = Task.objects.filter(organization=organization).select_related('agent', 'task_serie').order_by(order_by)
     if agent_id:
         task_queryset = task_queryset.filter(agent__id=agent_id)
     if category_id:
-        task_queryset = task_queryset.filter(category__id=agent_id)
+        task_queryset = task_queryset.filter(categories__id=agent_id)
+    task_queryset = list(task_queryset)
     categories = list(Category.objects.filter(organization=organization).order_by('name'))
     agents = list(Agent.objects.filter(organization=organization).order_by('name'))
     affected_categories = {}
@@ -86,6 +92,9 @@ def change_tab_tasks(window_info, organization, order_by: Choice(Task.orders) = 
                'agents': agents, 'agent_id': agent_id, 'order_by': order_by, 'category_id': category_id,
                'new_task': Task(), 'empty_set': set()}
     render_to_client(window_info, 'autoplanner/tabs/tasks.html', context, '#tasks')
+    add_attribute(window_info, '.filter-tasks', 'class', 'filter-tasks list-group-item')
+    add_attribute(window_info, '#by_agent_%s' % agent_id, 'class', 'filter-tasks list-group-item active')
+    add_attribute(window_info, '#by_category_%s' % category_id, 'class', 'filter-tasks list-group-item active')
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_description')
@@ -790,7 +799,7 @@ def add_task(window_info, organization_pk: int, value: SerializedForm(TaskAddFor
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.filter_tasks')
 def filter_tasks(window_info, organization_pk: int, order_by: Choice(Task.orders) = 'start_time',
-                 agent_id: int = None, category_id: int = None):
+                 agent_id: int_or_none = None, category_id: int_or_none = None):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if organization:
         change_tab_tasks(window_info, organization, order_by=order_by, agent_id=agent_id, category_id=category_id)
@@ -800,6 +809,7 @@ def filter_tasks(window_info, organization_pk: int, order_by: Choice(Task.orders
 def task_multiply(window_info, organization_pk: int, task_pk: int, form: SerializedForm(TaskMultiplyForm)=None):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     obj = Task.objects.filter(organization__id=organization_pk, pk=task_pk).first()
+    add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa')
     if not organization or not obj:
         return
     if form and form.is_valid():
@@ -834,20 +844,27 @@ def task_multiply(window_info, organization_pk: int, task_pk: int, form: Seriali
             end_time += increment
             name_index += 1
         if tasks_to_create:
-            if current_category_pks:
-                cls = Task.categories.through
-                all_categories_to_create = []
-                for new_task in tasks_to_create:
-                    new_task.save()
-                    all_categories_to_create += [cls(task_id=new_task.pk, category_id=category_pk)
-                                                 for category_pk in current_category_pks]
-                cls.objects.bulk_create(all_categories_to_create)
-            else:
-                Task.objects.bulk_create(tasks_to_create)
+            cls = Task.categories.through
+            all_categories_to_create = []
+            for new_task in tasks_to_create:
+                new_task.save()
+                all_categories_to_create += [cls(task_id=new_task.pk, category_id=category_pk)
+                                             for category_pk in current_category_pks]
+            cls.objects.bulk_create(all_categories_to_create)
         if len(tasks_to_create) > 1:
             notify(window_info, _('%(count)d tasks have been created.') % {'count': len(tasks_to_create)}, level=INFO)
         elif tasks_to_create:
             notify(window_info, _('A task has been created.'), level=INFO)
+
+        # add the task to the HTML page
+        categories = list(Category.objects.filter(organization=organization).order_by('name'))
+        agents = list(Agent.objects.filter(organization=organization).order_by('name'))
+        context = {'organization': organization, 'obj': None, 'obj_categories': current_category_pks,
+                   'agents': agents, 'categories': categories, }
+        for new_task in tasks_to_create:
+            context['obj'] = new_task
+            content_str = render_to_string('autoplanner/include/task.html', context=context, window_info=window_info)
+            before(window_info, '#row_task_None', content_str)
         modal_hide(window_info)
         return
     elif not form:
@@ -855,3 +872,11 @@ def task_multiply(window_info, organization_pk: int, task_pk: int, form: Seriali
     context = {'task': obj, 'organization': organization, 'form': form}
     content_str = render_to_string('autoplanner/include/task_multiply.html', context=context, window_info=window_info)
     modal_show(window_info, content_str)
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_task')
+def remove_task(window_info, organization_pk: int, task_pk: int):
+    can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    if can_update:
+        Task.objects.filter(organization__id=organization_pk, id=task_pk).delete()
+        remove(window_info, '#row_task_%s' % task_pk)

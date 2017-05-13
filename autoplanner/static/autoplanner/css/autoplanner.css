@@ -257,3 +257,6 @@ input.form-control.vDateField, input.form-control.vTimeField {
 table.datetime {
     width: 100%;
 }
+li.active a {
+    color: white;
+}
