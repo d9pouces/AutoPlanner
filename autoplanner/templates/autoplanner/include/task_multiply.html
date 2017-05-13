@@ -9,8 +9,7 @@
 
     <div class="modal-body">
         <p class="well">
-            {% blocktrans %}You can repeat this task until the given limit is reached by the task starting time.
-            {% endblocktrans %}
+            {% blocktrans %}You can repeat this task until the starting time of the new tasks reaches your limit.{% endblocktrans %}
         </p>
 
         <table class="datetime">
@@ -25,7 +24,7 @@
         <hr>
         <p>{% trans 'Please specify the number of days between two successive tasks. This interval is between the start of these tasks.' %}</p>
         <div class="form-group">
-            <label for="multiplyTaskInterval">Interval (days):</label>
+            <label for="multiplyTaskInterval">{% trans 'Interval (days):' %}</label>
             <input id="multiplyTaskInterval" type="number" class="form-control" name="every" value="7"
                    style="width: 8em;">
         </div>

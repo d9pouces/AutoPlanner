@@ -12,3 +12,10 @@ function DateTimeShortcutsReinit(root) {
         }
     }
 }
+
+function InverseSelection() {
+    $('#tasks_table input[type=checkbox]').each(function (index, value) {
+        value.checked = !value.checked;
+    });
+    return false;
+}

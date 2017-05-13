@@ -197,3 +197,11 @@ class TaskMultiplyForm(forms.Form):
     until = forms.SplitDateTimeField(label=_('Duplicate this task until'), initial=default_day_start,
                                      widget=AdminSplitDateTime())
     every = forms.IntegerField(label=_('Days between successive task starts'), min_value=1, initial=7)
+
+
+class TaskMultipleUpdateForm(forms.Form):
+    agent = forms.ModelChoiceField(queryset=Agent.objects.all(), required=False)
+    categories = forms.ModelMultipleChoiceField(queryset=Category.objects.all(), required=False)
+    fix = forms.BooleanField(required=False)
+    unfix = forms.BooleanField(required=False)
+    tasks = forms.ModelMultipleChoiceField(queryset=Task.objects.all(), required=False)

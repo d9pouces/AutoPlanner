@@ -1,7 +1,9 @@
 {% load i18n djangofloor bootstrap3 autoplanner %}
 <tr id="row_task_{{ obj.id }}">
     <form role="form" {% if obj.id is None %}onsubmit="task_u('add_task', {{ obj.id }}, this);" {% endif %}>
-        <td style="width: 20px;"><i class="fa" id="check_task_{{ obj.id }}"></i></td>
+        <td style="width: 20px;">
+            {% if obj.id %}<input type="checkbox" name="selected" value="{{ obj.id }}">{% endif %}<br>
+            <i class="fa" id="check_task_{{ obj.id }}"></i></td>
         <td>
             <input type="text" class="form-control" name="name"
                    {% if obj.id %} onchange="task_u('set_task_name', {{ obj.id }}, this);" {% endif %} value="{{ obj.name }}">
@@ -41,7 +43,6 @@
                 </option>
                 {% endfor %}
             </select>
-            {% if obj.task_serie %}<span class="datetimeshortcuts"><a>{% trans 'Apply to the serie' %}</a></span>{% endif %}
         </td>
         <td>
             <select name="agent" class="form-control"

@@ -19,7 +19,7 @@ from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTok
     AgentCategoryPreferencesBalancingOffsetTimeForm, MaxTimeAffectationTaskMaximumTimeForm, MaxTimeAffectationAddForm, \
     CategoryBalancingToleranceTimeForm, CategoryBalancingToleranceNumberForm, AgentStartDateForm, AgentEndDateForm, \
     TaskNameForm, TaskStartTimeForm, TaskEndTimeForm, TaskStartDateForm, TaskEndDateForm, TaskAgentForm, \
-    TaskCategoriesForm, TaskAddForm, TaskMultiplyForm
+    TaskCategoriesForm, TaskAddForm, TaskMultiplyForm, TaskMultipleUpdateForm
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
     MaxTaskAffectation, MaxTimeTaskAffectation, Task
 from autoplanner.utils import python_to_components
@@ -76,11 +76,12 @@ def change_tab_balancing(window_info, organization):
 
 def change_tab_tasks(window_info, organization, order_by: Choice(Task.orders) = 'start_time',
                      agent_id: int = None, category_id: int = None):
-    task_queryset = Task.objects.filter(organization=organization).select_related('agent', 'task_serie').order_by(order_by)
+    task_queryset = Task.objects.filter(organization=organization).select_related('agent', 'task_serie')\
+        .order_by(order_by)
     if agent_id:
         task_queryset = task_queryset.filter(agent__id=agent_id)
     if category_id:
-        task_queryset = task_queryset.filter(categories__id=agent_id)
+        task_queryset = task_queryset.filter(categories__id=category_id)
     task_queryset = list(task_queryset)
     categories = list(Category.objects.filter(organization=organization).order_by('name'))
     agents = list(Agent.objects.filter(organization=organization).order_by('name'))
@@ -880,3 +881,45 @@ def remove_task(window_info, organization_pk: int, task_pk: int):
     if can_update:
         Task.objects.filter(organization__id=organization_pk, id=task_pk).delete()
         remove(window_info, '#row_task_%s' % task_pk)
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiple_update_show')
+def task_multiple_update_show(window_info, organization_pk: int):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if not organization:
+        return
+    categories = list(Category.objects.filter(organization=organization).order_by('name'))
+    agents = list(Agent.objects.filter(organization=organization).order_by('name'))
+    context = {'organization': organization, 'categories': categories, 'agents': agents}
+    content_str = render_to_string('autoplanner/include/task_multiple_update.html', context=context,
+                                   window_info=window_info)
+    modal_show(window_info, content_str)
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiple_update')
+def task_multiple_update(window_info, organization_pk: int, form: SerializedForm(TaskMultipleUpdateForm)=None):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if not organization:
+        return
+    if form and form.is_valid():
+        agent = form.cleaned_data['agent']
+        category_ids = {x.id for x in form.cleaned_data['categories']}
+        task_ids = {x.id for x in form.cleaned_data['tasks']}
+        kwargs = {}
+        if agent:
+            kwargs['fixed'] = True
+            kwargs['agent'] = agent
+        elif form.cleaned_data['fix']:
+            kwargs['fixed'] = True
+        elif form.cleaned_data['unfix']:
+            kwargs['fixed'] = False
+        if kwargs:
+            Task.objects.filter(id__in=task_ids).update(**kwargs)
+        if category_ids:
+            cls = Task.categories.through
+            all_categories_to_create = []
+            for task_id in task_ids:
+                all_categories_to_create += [cls(task_id=task_id, category_id=pk) for pk in category_ids]
+            cls.objects.bulk_create(all_categories_to_create)
+        modal_hide(window_info)
+
