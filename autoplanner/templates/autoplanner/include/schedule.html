@@ -1,21 +1,23 @@
-<tr>
-    <td>
-        {{ obj.status }}
+{% load i18n %}<tr id="schedule_{{ obj.id }}">
+    <td class="schedule-status">
+        {% if obj.status is None %}<i class="fa fa-spin fa-spinner"></i>
+        {% elif obj.status %}<button class="btn btn-xs btn-success"><i class="fa fa-check"></i></button>
+        {% else %}<button class="btn btn-xs btn-danger"><i class="fa fa-warning"></i></button>{% endif %}
     </td>
-    <td>
+    <td class="schedule-message">
         {{ obj.message }}
     </td>
-    <td>
+    <td class="schedule-start">
         {{ obj.celery_start }}
     </td>
-    <td>
-        {{ obj.celery_end }}
+    <td class="schedule-end">
+        {% if obj.celery_end %}{{ obj.celery_end }}
+        {% elif obj.celery_start %}{% trans 'running…' %}
+        {% endif %}
     </td>
     <td>
         {% if obj.is_selected %}
-
         {% elif obj.status %}
-
         {% endif %}
     </td>
 </tr>

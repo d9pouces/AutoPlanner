@@ -1,5 +1,5 @@
 {% extends 'autoplanner/base.html' %}
-{% load bootstrap3 i18n %}
+{% load bootstrap3 i18n autoplanner %}
 
 {% block body-container %}
 <div class="container-fluid">
@@ -23,7 +23,19 @@
                 <li><a id="a_balancing" class="main_tabs" href="#balancing" data-toggle="tab">{% trans 'Constraints' %}</a></li>
                 <li><a id="a_tasks" class="main_tabs" href="#tasks" data-toggle="tab">{% trans 'Tasks' %}</a></li>
                 <li><a id="a_schedules" class="main_tabs" href="#schedules" data-toggle="tab">{% trans 'Schedules' %}</a></li>
-            </ul>
+            </ul></div>
+    </div>
+    <div class="row">
+        <div class="col-md-1 col-lg-1 col-sm-1">
+        </div>
+        <div class="col-md-10 col-lg-10 col-sm-10">
+        <span class="center" id="schedule_status">{% include 'autoplanner/include/schedule_status.html' %}</span>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-1 col-lg-1 col-sm-1">
+        </div>
+        <div class="col-md-10 col-lg-10 col-sm-10">
 
             <div class="tab-content">
                 <div class="tab-pane active" id="general">...</div>

@@ -25,6 +25,7 @@ from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTok
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
     MaxTaskAffectation, MaxTimeTaskAffectation, Task, ScheduleRun
 from autoplanner.utils import python_to_components
+from autoplanner.tasks import compute_schedule, kill_schedule
 
 __author__ = 'Matthieu Gallet'
 
@@ -958,6 +959,8 @@ def task_multiple_update(window_info, organization_pk: int, form: SerializedForm
 def task_import(window_info, organization_pk: int, form: SerializedForm(TaskImportForm)=None,
                 order_by: Choice(Task.orders) = 'start_time', agent_id: int_or_none = None,
                 category_id: int_or_none = None, pattern: str = ''):
+    # noinspection PyUnusedLocal
+    order_by, agent_id, category_id, pattern = order_by, agent_id, category_id, pattern
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if not organization:
         return
@@ -1025,3 +1028,26 @@ def task_import(window_info, organization_pk: int, form: SerializedForm(TaskImpo
                'example_a': example_a, 'example_b': example_b}
     content_str = render_to_string('autoplanner/include/task_import.html', context=context, window_info=window_info)
     modal_show(window_info, content_str)
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.launch')
+def schedule_launch(window_info, organization_pk: int):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if not organization:
+        return
+    compute_schedule.delay(organization_pk, window_info.to_dict())
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.kill')
+def schedule_kill(window_info, organization_pk: int, celery_task_id: str):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if not organization:
+        return
+    kill_schedule.delay(celery_task_id, window_info.to_dict())
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.remove')
+def schedule_remove(window_info, organization_pk: int, schedule_pk: int):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if not organization:
+        return
