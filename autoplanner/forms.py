@@ -91,8 +91,6 @@ class AgentEndTimeForm(forms.Form):
 
 class AgentAddForm(forms.Form):
     name = forms.CharField(label=_('Name'), max_length=500, min_length=1)
-    start_time = forms.DateTimeField(label=_('Arrival time'), required=False, widget=AdminSplitDateTime())
-    end_time = forms.DateTimeField(label=_('Leaving time'), required=False, widget=AdminSplitDateTime())
 
 
 class AgentCategoryPreferencesAffinityForm(forms.Form):

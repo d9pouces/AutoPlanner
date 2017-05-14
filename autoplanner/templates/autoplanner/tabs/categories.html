@@ -1,5 +1,5 @@
 {% load i18n %}
-<p class="well">{% blocktrans %}To ensure that two overlapping tasks are affected to different resources,
+<p class="well">{% blocktrans %}To ensure that two overlapping tasks are assigned to different resources,
     they must belong to the same category.
 <br>
     Schedule takes into account the balance of tasks before dispatching them to resources. However, you can only define
@@ -12,7 +12,7 @@
         <th>{% trans 'Name' %}</th>
         <th>{% trans 'How to balance tasks of this category accross resources?' %}</th>
         <th>{% trans 'Which difference do you tolerate between the least and the most used resources?' %}</th>
-        <th>{% trans 'Bonus given when two successive tasks are affected to the same resource?' %}</th>
+        <th>{% trans 'Bonus given when two successive tasks are assigned to the same resource?' %}</th>
         <th>&nbsp;</th>
     </tr>
     {% for obj in categories %}

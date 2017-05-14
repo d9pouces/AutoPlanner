@@ -23,7 +23,7 @@ from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTok
     TaskNameForm, TaskStartTimeForm, TaskEndTimeForm, TaskStartDateForm, TaskEndDateForm, TaskAgentForm, \
     TaskCategoriesForm, TaskAddForm, TaskMultiplyForm, TaskMultipleUpdateForm, TaskImportForm
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
-    MaxTaskAffectation, MaxTimeTaskAffectation, Task
+    MaxTaskAffectation, MaxTimeTaskAffectation, Task, ScheduleRun
 from autoplanner.utils import python_to_components
 
 __author__ = 'Matthieu Gallet'
@@ -40,6 +40,7 @@ def change_tab(window_info, organization_pk: int, tab_name: str):
     obj = Organization.query(window_info).filter(pk=organization_pk).first()
     fn = {'general': change_tab_general, 'categories': change_tab_categories,
           'agents': change_tab_agents, 'balancing': change_tab_balancing, 'tasks': change_tab_tasks,
+          'schedules': change_tab_schedules,
           }.get(tab_name)
     if fn:
         fn(window_info, obj)
@@ -100,6 +101,12 @@ def change_tab_tasks(window_info, organization, order_by: Choice(Task.orders) = 
     add_attribute(window_info, '.filter-tasks', 'class', 'filter-tasks list-group-item')
     add_attribute(window_info, '#by_agent_%s' % agent_id, 'class', 'filter-tasks list-group-item active')
     add_attribute(window_info, '#by_category_%s' % category_id, 'class', 'filter-tasks list-group-item active')
+
+
+def change_tab_schedules(window_info, organization):
+    schedule_queryset = ScheduleRun.objects.filter(organization=organization).order_by('-celery_start')
+    context = {'organization': organization, 'schedules': schedule_queryset}
+    render_to_client(window_info, 'autoplanner/tabs/schedules.html', context, '#schedules')
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_description')
@@ -331,7 +338,7 @@ def add_agent(window_info, organization_pk: int, value: SerializedForm(AgentAddF
     if can_update and value and value.is_valid():
         agent = Agent(organization_id=organization_pk, name=value.cleaned_data['name'])
         agent.save()
-        context = {'organization': organization, 'agent': agent}
+        context = {'organization': organization, 'obj': agent}
         content_str = render_to_string('autoplanner/include/agent.html', context=context, window_info=window_info)
         before(window_info, '#row_agent_None', content_str)
     elif value and not value.is_valid():
@@ -811,7 +818,7 @@ def add_task(window_info, organization_pk: int, value: SerializedForm(TaskAddFor
         focus(window_info, '#row_task_None')
     elif value and not value.is_valid():
         notify(window_info, value.errors, style=NOTIFICATION, level=DANGER)
-    add_attribute(window_info, '#check_max_time_affectation_None', 'class', 'fa')
+    add_attribute(window_info, '#check_task_None', 'class', 'fa')
     focus(window_info, '#id_name_None')
 
 

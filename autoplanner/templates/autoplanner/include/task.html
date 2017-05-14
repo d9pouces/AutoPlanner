@@ -48,7 +48,7 @@
             <select name="agent" class="form-control"
                     {% if obj.id %}onchange="task_u('set_task_agent', {{ obj.id }}, this);" {% endif %}>
                 <option value="" {% if not obj.fixed or obj.agent_id is None %}selected="selected" {% endif %}>
-                    ({% trans 'not affected' %})
+                    ({% trans 'not assigned' %})
                 </option>
                 {% for agent in agents %}
                 <option value="{{ agent.id }}" {% if obj.fixed and obj.agent_id == agent.id %}selected="selected" {% endif %}>{{ agent.name }}</option>
@@ -72,7 +72,6 @@
             <script type="application/javascript">
     DateTimeShortcutsReinit('#row_task_{{ obj.id }}');
 </script>
-
         </td>
     </form>
 </tr>

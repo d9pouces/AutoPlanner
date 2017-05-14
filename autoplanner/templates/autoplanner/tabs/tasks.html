@@ -5,9 +5,10 @@
 
             The schedule will determine how to dispatch them to resources will respecting your constraints, if such a
             solution exists.
-            {% endblocktrans %}
+            <br>If you assign a task to a specific resource, then the scheduler will not change its assignment.
+            The scheduler will only propose assignments for all tasks.{% endblocktrans %}
         </p>
-        <small><span class="datetimeshortcuts"><a href="#" onclick="return callTask(undefined, undefined, undefined, undefined, 'autoplanner.forms.task_import');">{% trans 'Bulk import multiple tasks' %}</a> </span> </small>
+        <small><span class="datetimeshortcuts"><a href="#" onclick="return callTask(undefined, undefined, undefined, undefined, 'autoplanner.forms.task_import');">{% trans 'Import multiple tasks' %}</a> </span> </small>
 
         <table class="table table-stripped" id="tasks_table">
             <tr>
@@ -16,7 +17,7 @@
                 <th>{% trans 'begins at…' %}</th>
                 <th>{% trans 'and ends at…' %}</th>
                 <th>{% trans 'belongs to…' %}</th>
-                <th>{% trans 'and is affected to:' %}</th>
+                <th>{% trans 'and is assigned to:' %}</th>
                 <th colspan="2">
                     <small><span class="datetimeshortcuts"><a href="#" onclick="return $.df.call('autoplanner.forms.task_multiple_update_show', {organization_pk: {{ organization.id }} });">{% trans 'Update selection' %}</a> </span> </small>
                 </th>

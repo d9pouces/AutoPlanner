@@ -11,7 +11,7 @@
         <div class="form-group">
             <label for="multiple_update_agent">{% trans 'Affect selection to:' %}</label>
             <select name="agent" class="form-control" id="multiple_update_agent">
-                <option value="">({% trans 'not affected' %})</option>
+                <option value="">({% trans 'not assigned' %})</option>
                 {% for agent in agents %}<option value="{{ agent.id }}">{{ agent.name }}</option>{% endfor %}
             </select>
         </div>

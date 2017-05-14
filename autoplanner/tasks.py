@@ -99,7 +99,7 @@ def apply_schedule(organization_id, result_dict):
             raise ValueError(_('Invalid schedule: a task has been removed since this computation'))
         all_task_pks |= task_pks
     if not available_tasks_ids.issubset(all_task_pks):
-        raise ValueError(_('Invalid schedule: several tasks are not affected to an agent'))
+        raise ValueError(_('Invalid schedule: several tasks are not assigned to a resource'))
     for agent_pk, task_pks in result_dict.items():
         agent_pk = int(agent_pk)
         Task.objects.filter(pk__in=task_pks, fixed=False, organization__id=organization_id) \

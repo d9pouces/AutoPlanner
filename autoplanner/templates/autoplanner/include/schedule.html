@@ -1,0 +1,21 @@
+<tr>
+    <td>
+        {{ obj.status }}
+    </td>
+    <td>
+        {{ obj.message }}
+    </td>
+    <td>
+        {{ obj.celery_start }}
+    </td>
+    <td>
+        {{ obj.celery_end }}
+    </td>
+    <td>
+        {% if obj.is_selected %}
+
+        {% elif obj.status %}
+
+        {% endif %}
+    </td>
+</tr>
