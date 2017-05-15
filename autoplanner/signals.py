@@ -21,7 +21,7 @@ from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTok
     AgentCategoryPreferencesBalancingOffsetTimeForm, MaxTimeAffectationTaskMaximumTimeForm, MaxTimeAffectationAddForm, \
     CategoryBalancingToleranceTimeForm, CategoryBalancingToleranceNumberForm, AgentStartDateForm, AgentEndDateForm, \
     TaskNameForm, TaskStartTimeForm, TaskEndTimeForm, TaskStartDateForm, TaskEndDateForm, TaskAgentForm, \
-    TaskCategoriesForm, TaskAddForm, TaskMultiplyForm, TaskMultipleUpdateForm, TaskImportForm
+    TaskCategoriesForm, TaskAddForm, TaskMultiplyForm, TaskMultipleUpdateForm, TaskImportForm, TaskMultipleRemoveForm
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
     MaxTaskAffectation, MaxTimeTaskAffectation, Task, ScheduleRun
 from autoplanner.utils import python_to_components
@@ -191,7 +191,7 @@ def set_category_balancing_tolerance_time(window_info, organization_pk: int, cat
     if can_update and value and value.is_valid():
         balancing_tolerance = value.cleaned_data['balancing_tolerance']
         Category.objects.filter(organization__id=organization_pk, pk=category_pk).update(
-            balancing_tolerance=balancing_tolerance.total_seconds())
+            balancing_tolerance=balancing_tolerance.total_seconds() / 2.0)
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-check')
     elif value:
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-remove')
@@ -204,7 +204,7 @@ def set_category_balancing_tolerance_number(window_info, organization_pk: int, c
     if can_update and value and value.is_valid():
         balancing_tolerance = value.cleaned_data['balancing_tolerance']
         Category.objects.filter(organization__id=organization_pk, pk=category_pk).update(
-            balancing_tolerance=balancing_tolerance)
+            balancing_tolerance=balancing_tolerance / 2.0)
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-check')
     elif value:
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-remove')
@@ -955,6 +955,23 @@ def task_multiple_update(window_info, organization_pk: int, form: SerializedForm
     modal_hide(window_info)
 
 
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiple_remove')
+def task_multiple_remove(window_info, organization_pk: int, form: SerializedForm(TaskMultipleRemoveForm) = None,
+                         order_by: Choice(Task.orders) = 'start_time', agent_id: int_or_none = None,
+                         category_id: int_or_none = None, pattern: str = ''):
+    # noinspection PyUnusedLocal
+    order_by, agent_id, category_id, pattern = order_by, agent_id, category_id, pattern
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if not organization:
+        return
+    if form and form.is_valid():
+        task_ids = {x.id for x in form.cleaned_data['tasks']}
+        Task.objects.filter(organization__id=organization_pk, id__in=task_ids).delete()
+        for task_id in task_ids:
+            remove(window_info, '#row_task_%s' % task_id)
+    modal_hide(window_info)
+
+
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_import')
 def task_import(window_info, organization_pk: int, form: SerializedForm(TaskImportForm)=None,
                 order_by: Choice(Task.orders) = 'start_time', agent_id: int_or_none = None,
@@ -1049,5 +1066,6 @@ def schedule_kill(window_info, organization_pk: int, celery_task_id: str):
 @signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.remove')
 def schedule_remove(window_info, organization_pk: int, schedule_pk: int):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
-    if not organization:
-        return
+    if organization:
+        ScheduleRun.objects.filter(organization__id=organization_pk, id=schedule_pk).delete()
+        remove(window_info, '#schedule_%s' % schedule_pk)

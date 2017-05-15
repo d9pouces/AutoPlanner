@@ -119,6 +119,11 @@ def compute_schedule(self, organization_id, window_info_data=None):
             status_str = '<button class="btn btn-xs btn-danger"><i class="fa fa-warning"></i></button>'
         content(window_info, '#schedule_%s .schedule-status' % schedule_run.id, status_str)
         content(window_info, '#schedule_%s .schedule-message' % schedule_run.id, str(schedule_msg))
+        remove_str = '<button class="btn btn-sm btn-danger" onclick="return ' \
+                     '$.df.$call(\'autoplanner.schedule.remove\', ' \
+                     '{organization_pk: {{ organization.pk }}, schedule_pk: {{ obj.id }} });">' \
+                     '<i class="fa fa-minus"></i></button>'
+        content(window_info, '#schedule_%s .schedule-remove' % schedule_run.id, remove_str)
 
 
 def apply_schedule(organization_id, result_dict):

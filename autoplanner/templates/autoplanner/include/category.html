@@ -22,14 +22,14 @@
                id="id_balancing_tolerance_{{ obj.id }}_time"
                name="balancing_tolerance"
                onchange="$('#check_category_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_balancing_tolerance_time', {organization_pk: {{ organization.id }}, category_pk: {{ obj.id }}, value: $(this).serializeArray()})"
-               value="{% if obj.balancing_tolerance is not None %}{{ obj.balancing_tolerance_as_timedelta|timedelta }}{% endif %}">
+               value="{% if obj.balancing_tolerance is not None %}{{ obj.balancing_tolerance_as_timedelta_2|timedelta }}{% endif %}">
         <span class="{% if obj.balancing_mode != obj.BALANCE_TIME %}hidden{% endif %}"
                id="legend_balancing_tolerance_{{ obj.id }}_time">{% trans '(in seconds)' %}</span>
         <input type="number" class="form-control {% if obj.balancing_mode != obj.BALANCE_NUMBER %}hidden{% endif %}"
                id="id_balancing_tolerance_{{ obj.id }}_number"
                name="balancing_tolerance"
                onchange="$('#check_category_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_balancing_tolerance_number', {organization_pk: {{ organization.id }}, category_pk: {{ obj.id }}, value: $(this).serializeArray()})"
-               value="{% if obj.balancing_tolerance is not None %}{{ obj.balancing_tolerance|my_simple_str }}{% endif %}">
+               value="{% if obj.balancing_tolerance is not None %}{{ obj.balancing_tolerance_2|my_simple_str }}{% endif %}">
         <span class="{% if obj.balancing_mode != obj.BALANCE_NUMBER %}hidden{% endif %}"
                    id="legend_balancing_tolerance_{{ obj.id }}_number">{% trans '(number of tasks)' %}</span>
     {% else %}&nbsp;{% endif %}

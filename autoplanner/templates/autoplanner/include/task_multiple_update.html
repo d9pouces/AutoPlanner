@@ -26,6 +26,7 @@
     </div>
     <div class="modal-footer">
         <div class="btn-group">
+            <button type="button" class="btn btn-danger" onclick="return callTask(undefined, undefined, undefined, undefined, 'autoplanner.forms.task_multiple_remove', {form: $('#taskMultiplyForm').serializeArray()});">{% trans 'Update selected tasks' %}</button>
             <input type="submit" class="btn btn-success" value="{% trans 'Update selected tasks' %}"/>
             <button type="button" class="btn btn-default" data-dismiss="modal">{% trans 'Close' %}</button>
         </div>

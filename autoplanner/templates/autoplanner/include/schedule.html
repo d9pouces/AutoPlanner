@@ -15,9 +15,14 @@
         {% elif obj.celery_start %}{% trans 'running…' %}
         {% endif %}
     </td>
-    <td>
+    <td class="">
         {% if obj.is_selected %}
         {% elif obj.status %}
+        {% endif %}
+    </td>
+    <td class="schedule-remove">
+        {% if obj.status is not None %}
+        <button class="btn btn-sm btn-danger" onclick="return $.df.call('autoplanner.schedule.remove', {organization_pk: {{ organization.pk }}, schedule_pk: {{ obj.id }} });"> <i class="fa fa-minus"></i></button>
         {% endif %}
     </td>
 </tr>
