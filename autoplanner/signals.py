@@ -3,6 +3,7 @@ import csv
 import datetime
 import re
 
+import markdown
 from django import forms
 from django.utils.timezone import utc
 from django.utils.translation import ugettext as _
@@ -23,7 +24,8 @@ from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTok
     TaskNameForm, TaskStartTimeForm, TaskEndTimeForm, TaskStartDateForm, TaskEndDateForm, TaskAgentForm, \
     TaskCategoriesForm, TaskAddForm, TaskMultiplyForm, TaskMultipleUpdateForm, TaskImportForm, TaskMultipleRemoveForm
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
-    MaxTaskAffectation, MaxTimeTaskAffectation, Task, ScheduleRun
+    MaxTaskAffectation, MaxTimeTaskAffectation, Task, ScheduleRun, API_KEY_VARIABLE
+from autoplanner.schedule import Scheduler
 from autoplanner.utils import python_to_components
 from autoplanner.tasks import compute_schedule, kill_schedule
 
@@ -41,7 +43,7 @@ def change_tab(window_info, organization_pk: int, tab_name: str):
     obj = Organization.query(window_info).filter(pk=organization_pk).first()
     fn = {'general': change_tab_general, 'categories': change_tab_categories,
           'agents': change_tab_agents, 'balancing': change_tab_balancing, 'tasks': change_tab_tasks,
-          'schedules': change_tab_schedules,
+          'schedules': change_tab_schedules, 'schedule': change_tab_schedule
           }.get(tab_name)
     if fn:
         fn(window_info, obj)
@@ -99,9 +101,11 @@ def change_tab_tasks(window_info, organization, order_by: Choice(Task.orders) = 
                'agents': agents, 'agent_id': agent_id, 'order_by': order_by, 'category_id': category_id,
                'new_task': Task(), 'empty_set': set(), 'pattern': pattern}
     render_to_client(window_info, 'autoplanner/tabs/tasks.html', context, '#tasks')
-    add_attribute(window_info, '.filter-tasks', 'class', 'filter-tasks list-group-item')
-    add_attribute(window_info, '#by_agent_%s' % agent_id, 'class', 'filter-tasks list-group-item active')
-    add_attribute(window_info, '#by_category_%s' % category_id, 'class', 'filter-tasks list-group-item active')
+    for task, task_categories in tasks_categories:
+        context['obj'] = task
+        context['obj_categories'] = task_categories
+        content_str = render_to_string('autoplanner/include/task.html', context=context, window_info=window_info)
+        before(window_info, '#row_task_None', content_str)
 
 
 def change_tab_schedules(window_info, organization):
@@ -973,7 +977,7 @@ def task_multiple_remove(window_info, organization_pk: int, form: SerializedForm
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_import')
-def task_import(window_info, organization_pk: int, form: SerializedForm(TaskImportForm)=None,
+def task_import(window_info, organization_pk: int, form: SerializedForm(TaskImportForm) = None,
                 order_by: Choice(Task.orders) = 'start_time', agent_id: int_or_none = None,
                 category_id: int_or_none = None, pattern: str = ''):
     # noinspection PyUnusedLocal
@@ -1069,3 +1073,56 @@ def schedule_remove(window_info, organization_pk: int, schedule_pk: int):
     if organization:
         ScheduleRun.objects.filter(organization__id=organization_pk, id=schedule_pk).delete()
         remove(window_info, '#schedule_%s' % schedule_pk)
+
+
+def change_tab_schedule(window_info, organization):
+    scheduler = Scheduler(organization)
+    statistics = {x.pk: {category.pk: [0, datetime.timedelta(0), None] for category in scheduler.categories}
+                  for x in scheduler.agents}
+    # [total_number, total_time, balanced_value]
+    # first we add the offset (multiplied by the balancing coefficient)
+    for category in scheduler.categories:
+        if category.balancing_mode == Category.BALANCE_NUMBER:
+            for agent in scheduler.agents:
+                offset, count, __ = scheduler.preferences_by_agent_by_category[category.pk].get(agent.pk, (0., 1., 0.))
+                if count is None:
+                    statistics[agent.pk][category.pk][2] = None
+                else:
+                    statistics[agent.pk][category.pk][2] = offset * count
+        elif category.balancing_mode == Category.BALANCE_TIME:
+            for agent in scheduler.agents:
+                offset, count, __ = scheduler.preferences_by_agent_by_category[category.pk].get(agent.pk, (0., 1., 0.))
+                if count is None:
+                    statistics[agent.pk][category.pk][2] = None
+                else:
+                    statistics[agent.pk][category.pk][2] = datetime.timedelta(seconds=offset * count)
+    # we can add all the tasks
+    for task in scheduler.tasks:
+        if task.agent_id is None:
+            continue
+        for category_pk in scheduler.categories_by_task[task.pk]:
+            duration = task.duration
+            statistics[task.agent_id][category_pk][0] += 1
+            statistics[task.agent_id][category_pk][1] += duration
+            if scheduler.categories_by_pk[category_pk].balancing_mode is None:
+                continue
+            __, count, __ = scheduler.preferences_by_agent_by_category[category_pk].get(task.agent_id, (0., 1., 0.))
+            if scheduler.categories_by_pk[category_pk].balancing_mode == Category.BALANCE_NUMBER:
+                if count is None:
+                    statistics[task.agent_id][category_pk][2] = None
+                else:
+                    statistics[task.agent_id][category_pk][2] += count
+
+            elif scheduler.categories_by_pk[category_pk].balancing_mode == Category.BALANCE_TIME:
+                value = datetime.timedelta(seconds=duration.total_seconds() * count)
+                statistics[task.agent_id][category_pk][2] += value
+
+    categories = [category for category in scheduler.categories]
+    categories.sort(key=lambda x: x.name)
+    agents = [agent for agent in scheduler.agents]
+    agents.sort(key=lambda x: x.name)
+    sorted_statistics = [[x] + [statistics[x.pk][y.pk] for y in categories] for x in agents]
+    context = {'obj': organization, 'statistics': sorted_statistics, 'agents': agents,
+               'categories': categories, 'description': markdown.markdown(organization.description),
+               'api_key_variable': API_KEY_VARIABLE}
+    render_to_client(window_info, 'autoplanner/tabs/schedule.html', context, '#schedule')

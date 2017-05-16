@@ -10,7 +10,7 @@
         </p>
         <small><span class="datetimeshortcuts"><a href="#" onclick="return callTask(undefined, undefined, undefined, undefined, 'autoplanner.forms.task_import');">{% trans 'Import multiple tasks' %}</a> </span> </small>
 
-        <table class="table table-stripped" id="tasks_table">
+        <table class="table table-striped" id="tasks_table">
             <tr>
                 <th><small><span class="datetimeshortcuts"><a href="#" onclick="return InverseSelection();">{% trans 'Select' %}</a></span></small></th>
                 <th>{% trans 'The task…' %}</th>
@@ -27,11 +27,6 @@
                     <input class="form-control" value="{{ pattern }}" onchange="return callTask(undefined, undefined, undefined, this.value);" onsubmit="return callTask(undefined, undefined, undefined, this.value);" placeholder="{% trans 'Filter…' %}">
                 </td>
             </tr>
-            {% for obj_with_categories in tasks_categories %}
-            {% with obj=obj_with_categories.0 obj_categories=obj_with_categories.1 %}
-            {% include 'autoplanner/include/task.html' %}
-            {% endwith %}
-            {% endfor %}
             {% with obj=new_task obj_categories=empty_set %}
             {% include 'autoplanner/include/task.html' %}
             {% endwith %}
@@ -40,16 +35,16 @@
     <div class="col-md-2 col-lg-2 col-sm-12">
         <ul class="list-group">
             <li class="list-group-item active">{% trans 'By category' %}</li>
-            <li id="by_category_None" class="filter-tasks list-group-item"><a href="#" onclick="return callTask(undefined, undefined, null);">{% trans 'all categories' %}</a></li>
+            <li id="by_category_None" class="filter-tasks list-group-item {% if category_id is None %}active{% endif %}"><a href="#" onclick="return callTask(undefined, undefined, null);">{% trans 'all categories' %}</a></li>
             {% for x in categories %}
-            <li id="by_category_{{ x.id }}" class="filter-tasks list-group-item"><a href="#" onclick="return callTask(undefined, undefined, {{ x.id }});">{{ x.name }}</a></li>
+            <li id="by_category_{{ x.id }}" class="filter-tasks list-group-item {% if x.id == category_id %}active{% endif %}"><a href="#" onclick="return callTask(undefined, undefined, {{ x.id }});">{{ x.name }}</a></li>
             {% endfor %}
         </ul>
         <ul class="list-group">
             <li class="list-group-item active">{% trans 'By agent' %}</li>
-            <li id="by_agent_None" class="filter-tasks list-group-item"><a href="#" onclick="return callTask(undefined, null);">{% trans 'all agents' %}</a></li>
+            <li id="by_agent_None" class="filter-tasks list-group-item {% if agent_id is None %}active{% endif %}"><a href="#" onclick="return callTask(undefined, null);">{% trans 'all agents' %}</a></li>
             {% for x in agents %}
-            <li id="by_agent_{{ x.id }}" class="filter-tasks list-group-item"><a href="#" onclick="callTask(undefined, {{ x.id }});">{{ x.name }}</a></li>
+            <li id="by_agent_{{ x.id }}" class="filter-tasks list-group-item {% if x.id == agent_id %}active{% endif %}"><a href="#" onclick="callTask(undefined, {{ x.id }});">{{ x.name }}</a></li>
             {% endfor %}
         </ul>
     </div>

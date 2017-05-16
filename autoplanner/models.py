@@ -148,10 +148,6 @@ class Category(OrganizationObject):
         verbose_name_plural = _('Categories of tasks')
 
     @property
-    def balancing_tolerance_as_timedelta(self):
-        return datetime.timedelta(seconds=self.balancing_tolerance or 0)
-
-    @property
     def balancing_tolerance_as_timedelta_2(self):
         return datetime.timedelta(seconds=(self.balancing_tolerance or 0) * 2.)
 

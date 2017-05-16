@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import celery
 import json
-import signal
-
 import os
+import signal
 import subprocess
-from django.utils.formats import date_format, time_format
+
+import celery
 from django.utils import timezone
+from django.utils.formats import date_format, time_format
 from django.utils.translation import ugettext_lazy as _
 from djangofloor.celery import app
 from djangofloor.signals.bootstrap3 import notify, SUCCESS, DANGER, INFO
-from djangofloor.signals.html import render_to_client, append, content
+from djangofloor.signals.html import render_to_client, content, after
 from djangofloor.wsgi.window_info import WindowInfo, render_to_string
 
 from autoplanner.models import Organization, Task, ScheduleRun, Agent
@@ -58,7 +58,7 @@ def compute_schedule(self, organization_id, window_info_data=None):
     schedule_run.save()
     if window_info:
         content_str = render_to_string('autoplanner/include/schedule.html', context={'obj': schedule_run})
-        append(window_info, '#schedules-table', content_str, to=[organization])
+        after(window_info, '#schedules-header', content_str, to=[organization])
     scheduler = Scheduler(organization)
     level = SUCCESS
     try:
