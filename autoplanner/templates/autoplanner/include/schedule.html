@@ -1,4 +1,5 @@
-{% load i18n %}<tr id="schedule_{{ obj.id }}">
+{% load i18n %}
+<tr id="schedule_{{ obj.id }}">
     <td class="schedule-status">
         {% if obj.status is None %}<i class="fa fa-spin fa-spinner"></i>
         {% elif obj.status %}<button class="btn btn-xs btn-success"><i class="fa fa-check"></i></button>

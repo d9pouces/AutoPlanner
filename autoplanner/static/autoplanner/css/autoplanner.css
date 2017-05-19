@@ -260,3 +260,10 @@ table.datetime {
 li.active a {
     color: white;
 }
+.calendar tr td, .calendar tr th {
+    border-left: 1px solid #bbb;
+    border-right: 1px solid #bbb;
+}
+.calendar {
+    border-bottom: 1px solid #bbb;
+}

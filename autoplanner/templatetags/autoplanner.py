@@ -29,6 +29,13 @@ def input_time(value):
 
 
 @register.filter
+def int_format(value, fmt=''):
+    if value is None:
+        return mark_safe('')
+    return mark_safe(('%%%sd' % fmt) % value)
+
+
+@register.filter
 def input_date(value):
     if value is None:
         return mark_safe('')

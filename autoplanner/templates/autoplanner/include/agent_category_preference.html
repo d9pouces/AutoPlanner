@@ -1,6 +1,6 @@
 {% load i18n djangofloor bootstrap3 autoplanner %}
 <tr id="row_agent_category_preferences_{{ obj.id }}">
-    <form role="form" {% if obj.id is None %}onsubmit="$('#check_agent_category_preferences_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_agent_category_preferences', {organization_pk: {{ organization.id }}, agent_pk: {{ agent.id }}, value: $(this).serializeArray()});"{% endif %}>
+    <form role="form" {% if obj.id is None %}onsubmit="$('#check_agent_category_preferences_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_agent_category_preferences', {organization_pk: {{ organization.id|my_simple_str }}, agent_pk: {{ agent.id }}, value: $(this).serializeArray()});"{% endif %}>
     <td style="width: 20px;">
         <i class="fa" id="check_agent_category_preferences_{{ obj.id }}"></i>
     </td>
@@ -35,9 +35,9 @@
         {% endif %}{% else %}&nbsp;{% endif %}
     </td>
     <td>
-        {% if obj.id %}<button class="btn btn-sm btn-danger" onclick="$('#check_agent_category_preferences_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.remove_agent_category_preferences', {organization_pk: {{ organization.id }}, agent_pk: {{ agent.id }}, agent_category_preferences_pk: {{ obj.id }} })"><i class="fa fa-minus"></i></button>
+        {% if obj.id %}<button class="btn btn-sm btn-danger" onclick="$('#check_agent_category_preferences_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.remove_agent_category_preferences', {organization_pk: {{ organization.id|my_simple_str }}, agent_pk: {{ agent.id }}, agent_category_preferences_pk: {{ obj.id }} })"><i class="fa fa-minus"></i></button>
         {% else %}<button class="btn btn-sm btn-success"
-                          onclick="$('#check_agent_category_preferences_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_agent_category_preferences', {organization_pk: {{ organization.id }}, agent_pk: {{ agent.id }}, value: $('#row_agent_category_preferences_{{ obj.id }} form').serializeArray()})">
+                          onclick="$('#check_agent_category_preferences_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_agent_category_preferences', {organization_pk: {{ organization.id|my_simple_str }}, agent_pk: {{ agent.id }}, value: $('#row_agent_category_preferences_{{ obj.id }} form').serializeArray()})">
         <i class="fa fa-plus"></i></button>
         {% endif %}
     </td>

@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import calendar
 import csv
 import datetime
 import re
 
 import markdown
 from django import forms
+from django.conf import settings
 from django.utils.timezone import utc
 from django.utils.translation import ugettext as _
 from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm, Choice
@@ -1124,5 +1126,86 @@ def change_tab_schedule(window_info, organization):
     sorted_statistics = [[x] + [statistics[x.pk][y.pk] for y in categories] for x in agents]
     context = {'obj': organization, 'statistics': sorted_statistics, 'agents': agents,
                'categories': categories, 'description': markdown.markdown(organization.description),
-               'api_key_variable': API_KEY_VARIABLE}
+               'api_key_variable': API_KEY_VARIABLE, 'organization': organization}
     render_to_client(window_info, 'autoplanner/tabs/schedule.html', context, '#schedule')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.calendar.month')
+def calendar_month(window_info, organization_pk: int, year: int=None, month: int=None):
+    now = datetime.datetime.now()
+    if year is None:
+        year = now.year
+    if month is None:
+        month = now.month
+    if not 1970 <= year <= 2050 or not 1 <= month <= 12:
+        return
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if not organization:
+        return
+    # cal = calendar.LocaleTextCalendar(locale=settings.LANGUAGE_CODE)
+    month_matrix = calendar.monthcalendar(year, month)
+    start = datetime.datetime(year, month, 1, 0, 0, 0, tzinfo=utc)
+    end = datetime.datetime(year, month, max(month_matrix[-1]), 23, 59, 59, tzinfo=utc)
+    query = Task.objects.filter(organization=organization).exclude(end_time__lt=start)\
+        .exclude(start_time__gt=end).select_related('agent').prefetch_related('categories')
+    task_matrix = [[(x, []) for x in line] for line in month_matrix]
+    # task_matrix[row][col] = [day number or 0, [list of tasks]]
+    offset = len(list(filter(lambda x: x == 0, task_matrix[0])))
+    for task in query:
+        s = max(task.start_time, start)
+        e = min(task.end_time, end)
+        for day in range(s.day, e.day + 1):
+            col = ((day + offset) % 7 or 7) - 1
+            row = (day + offset - col - 1) // 7
+            task_matrix[row][col][1].append(task)
+    previous_year, previous_month = year, month - 1
+    if previous_month == 0:
+        previous_year -= 1
+        previous_month = 12
+    next_year, next_month = year, month + 1
+    if next_month == 13:
+        next_year += 1
+        next_month = 1
+    month_str = {1: _('January'), 2: _('February'), 3: _('March'), 4: _('April'),
+                 5: _('May'), 6: _('June'), 7: _('July'), 8: _('August'),
+                 9: _('September'), 10: _('October'), 11: _('November'), 12: _('December')}[month]
+    context = {'matrix': task_matrix, 'month': month, 'year': year, 'organization': organization,
+               'previous_month': previous_month, 'previous_year': previous_year,
+               'next_year': next_year, 'next_month': next_month, 'month_str': month_str}
+    render_to_client(window_info, 'autoplanner/calendars/by_month.html', context, '#schedule')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.calendar.week')
+def calendar_week(window_info, organization_pk: int, year: int=None, month: int=None, day: int=None):
+    now = datetime.datetime.now()
+    try:
+        start = datetime.datetime(year or now.year, month or now.month, day or now.day, tzinfo=utc)
+    except ValueError:
+        return
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if not organization:
+        return
+    start -= datetime.timedelta(days=(start.isoweekday() - 1))
+    end = start + datetime.timedelta(days=7)
+    month_str = {1: _('January'), 2: _('February'), 3: _('March'), 4: _('April'),
+                 5: _('May'), 6: _('June'), 7: _('July'), 8: _('August'),
+                 9: _('September'), 10: _('October'), 11: _('November'), 12: _('December')}[start.month]
+    task_matrix = [[(x, []) for x in range(7)] for y in range(24)]
+    query = Task.objects.filter(organization=organization).exclude(end_time__lt=start)\
+        .exclude(start_time__gt=end).select_related('agent').prefetch_related('categories')
+    duration = datetime.timedelta(hours=1)
+    for task in query:
+        s = max(task.start_time, start).replace(minute=0, second=0)
+        e = min(task.end_time, end)
+        while s < e:
+            col = s.isoweekday() - 1
+            row = s.hour
+            s += duration
+            if 0 <= row <= 23 and 0 <= col <= 6:
+                task_matrix[row][col][1].append(task)
+    col_days = [(start + datetime.timedelta(days=x)).day for x in range(7)]
+
+    previous_start = start - datetime.timedelta(days=7)
+    context = {'matrix': task_matrix, 'month': start.month, 'year': start.year, 'organization': organization,
+               'previous_week': previous_start, 'next_week': end, 'month_str': month_str, 'col_days': col_days}
+    render_to_client(window_info, 'autoplanner/calendars/by_week.html', context, '#schedule')

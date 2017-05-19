@@ -1,5 +1,5 @@
 {% load i18n djangofloor bootstrap3 autoplanner %}
-<tr id="row_agent_{{ obj.id }}"><form role="form" {% if obj.id is None %}onsubmit="$('#check_agent_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_agent', {organization_pk: {{ organization.id }}, value: $(this).serializeArray()})"{% endif %}>
+<tr id="row_agent_{{ obj.id }}"><form role="form" {% if obj.id is None %}onsubmit="$('#check_agent_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_agent', {organization_pk: {{ organization.id|my_simple_str }}, value: $(this).serializeArray()})"{% endif %}>
     <td style="width: 20px;">
         <i class="fa" id="check_agent_{{ obj.id }}"></i>
     </td>
@@ -22,10 +22,10 @@
     </button>{% else %}&nbsp;{%endif %}
     </td>
     <td>
-        {% if obj.id %}<button class="btn btn-sm btn-danger" onclick="$('#check_agent_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.remove_agent', {organization_pk: {{ organization.id }}, agent_pk: {{ obj.id }} })"><i class="fa fa-minus"></i></button>
+        {% if obj.id %}<button class="btn btn-sm btn-danger" onclick="$('#check_agent_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.remove_agent', {organization_pk: {{ organization.id|my_simple_str }}, agent_pk: {{ obj.id }} })"><i class="fa fa-minus"></i></button>
         <script type="application/javascript">DateTimeShortcutsReinit('#row_agent_{{ obj.id }}');</script>
         {% else %}<button class="btn btn-sm btn-success"
-                          onclick="$('#check_agent_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_agent', {organization_pk: {{ organization.id }}, value: $('#row_agent_{{ obj.id }} form').serializeArray()})">
+                          onclick="$('#check_agent_{{ obj.id }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_agent', {organization_pk: {{ organization.id|my_simple_str }}, value: $('#row_agent_{{ obj.id }} form').serializeArray()})">
         <i class="fa fa-plus"></i></button>
         {% endif %}
 

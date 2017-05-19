@@ -19,7 +19,7 @@
                 <th>{% trans 'belongs to…' %}</th>
                 <th>{% trans 'and is assigned to:' %}</th>
                 <th colspan="2">
-                    <small><span class="datetimeshortcuts"><a href="#" onclick="return $.df.call('autoplanner.forms.task_multiple_update_show', {organization_pk: {{ organization.id }} });">{% trans 'Update selection' %}</a> </span> </small>
+                    <small><span class="datetimeshortcuts"><a href="#" onclick="return $.df.call('autoplanner.forms.task_multiple_update_show', {organization_pk: {{ organization.id|my_simple_str }} });">{% trans 'Update selection' %}</a> </span> </small>
                 </th>
             </tr>
             <tr>
@@ -52,7 +52,7 @@
 <script type="application/javascript">
 function callTask(order_by, agent_id, category_id, pattern, signal, kwargs) {
     if (kwargs === undefined) kwargs = {}; 
-    kwargs.organization_pk = {{ organization.id }};
+    kwargs.organization_pk = {{ organization.id|my_simple_str }};
     kwargs.order_by = order_by === undefined ? {{ order_by|js_value }} : order_by;
     kwargs.pattern = pattern === undefined ? {{ pattern|js_value }} : pattern;
     kwargs.agent_id = agent_id === undefined ? {{ agent_id|js_value }} : agent_id;

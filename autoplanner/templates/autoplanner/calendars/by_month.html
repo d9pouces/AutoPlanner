@@ -1,0 +1,42 @@
+{% load i18n autoplanner %}
+<div class="help-block form-group"></div>
+<div class="text-center"><div class="btn-group">
+<button onclick="return $.df.call('autoplanner.change_tab', {organization_pk: {{ organization.id|my_simple_str }}, tab_name: 'schedule'});" class="btn btn-sm btn-info">{% trans 'Abstract' %}</button>
+<button onclick="return false;" class="btn btn-sm btn-default">{% trans 'By month' %}</button>
+<button onclick="return $.df.call('autoplanner.calendar.week', {organization_pk: {{ organization.id|my_simple_str }} });" class="btn btn-sm btn-info">{% trans 'By week' %}</button>
+</div>
+</div><div class="help-block form-group"></div>
+<h2 class="text-center">{{ month_str }} {{ year|my_simple_str }}</h2>
+<ul class="pager">
+  <li class="previous"><a href="#" onclick="return $.df.call('autoplanner.calendar.month', {organization_pk: {{ organization.id|my_simple_str }}, month: {{ previous_month }}, year: {{ previous_year|my_simple_str }} });">&larr; {% trans 'Previous' %}</a></li>
+  <li class="next"><a href="#" onclick="return $.df.call('autoplanner.calendar.month', {organization_pk: {{ organization.id|my_simple_str }}, month: {{ next_month }}, year: {{ next_year|my_simple_str }} });">{% trans 'Next' %} &rarr;</a></li>
+</ul>
+
+<table class="table table-striped calendar">
+<tr>
+    <th>{% trans 'Mon' %}</th>
+    <th>{% trans 'Tue' %}</th>
+    <th>{% trans 'Wed' %}</th>
+    <th>{% trans 'Thu' %}</th>
+    <th>{% trans 'Fri' %}</th>
+    <th>{% trans 'Sat' %}</th>
+    <th>{% trans 'Sun' %}</th>
+</tr>
+{% for row_data in matrix %}
+<tr>
+{% for col_data in row_data %}
+<td>{% if col_data.0 == 0 %}&nbsp;{% else %}
+    <p class="text-center"><strong>{{ col_data.0 }}</strong></p>
+{% if col_data.1 %}<ul class="list-unstyled">
+    {% for task in col_data.1 %}
+    <li>{{ task.name }}
+        {% if task.agent and task.fixed %}<span class="label label-primary">{{ task.agent.name }}</span>
+        {% elif task.agent %}<span class="label label-default">({{ task.agent.name }})</span>
+        {% endif %}
+    </li>
+{% endfor %}</ul>
+    {% endif %}
+{% endif %}</td>{% endfor %}
+</tr>
+{% endfor %}
+</table>
