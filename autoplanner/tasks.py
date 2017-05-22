@@ -11,7 +11,7 @@ from django.utils.formats import date_format, time_format
 from django.utils.translation import ugettext_lazy as _
 from djangofloor.celery import app
 from djangofloor.signals.bootstrap3 import notify, SUCCESS, DANGER, INFO
-from djangofloor.signals.html import render_to_client, content, after
+from djangofloor.signals.html import render_to_client, content, after, replace_with
 from djangofloor.wsgi.window_info import WindowInfo, render_to_string
 
 from autoplanner.models import Organization, Task, ScheduleRun, Agent
@@ -57,7 +57,8 @@ def compute_schedule(self, organization_id, window_info_data=None):
     schedule_run = ScheduleRun(organization=organization, celery_task_id=celery_id, celery_start=start)
     schedule_run.save()
     if window_info:
-        content_str = render_to_string('autoplanner/include/schedule.html', context={'obj': schedule_run})
+        content_str = render_to_string('autoplanner/include/schedule.html',
+                                       context={'obj': schedule_run, 'organization': organization})
         after(window_info, '#schedules-header', content_str, to=[organization])
     scheduler = Scheduler(organization)
     level = SUCCESS
@@ -85,6 +86,7 @@ def compute_schedule(self, organization_id, window_info_data=None):
                                                                 't': time_format(end, use_l10n=True)}
             level = DANGER
         serialized_result_dict = json.dumps(result_dict, cls=SetJSONEncoder)
+        Organization.objects.filter(pk=organization_id).update(current_schedule_run_id=schedule_run.pk)
         ScheduleRun.objects.filter(pk=schedule_run.pk).update(celery_end=end, process_id=None, status=bool(result_dict),
                                                               result_dict=serialized_result_dict, is_selected=selected,
                                                               message=schedule_msg)
@@ -112,18 +114,9 @@ def compute_schedule(self, organization_id, window_info_data=None):
         organization.celery_task_id = None
         render_to_client(window_info, 'autoplanner/include/schedule_status.html', {'organization': organization},
                          '#schedule_status', to=[organization])
-        end_str = '%s %s' % (date_format(end, use_l10n=True), time_format(end, use_l10n=True))
-        content(window_info, '#schedule_%s .schedule-end' % schedule_run.id, end_str)
-        status_str = '<button class="btn btn-xs btn-success"><i class="fa fa-check"></i></button>'
-        if level == DANGER:
-            status_str = '<button class="btn btn-xs btn-danger"><i class="fa fa-warning"></i></button>'
-        content(window_info, '#schedule_%s .schedule-status' % schedule_run.id, status_str)
-        content(window_info, '#schedule_%s .schedule-message' % schedule_run.id, str(schedule_msg))
-        remove_str = '<button class="btn btn-sm btn-danger" onclick="return ' \
-                     '$.df.$call(\'autoplanner.schedule.remove\', ' \
-                     '{organization_pk: {{ organization.pk }}, schedule_pk: {{ obj.id }} });">' \
-                     '<i class="fa fa-minus"></i></button>'
-        content(window_info, '#schedule_%s .schedule-remove' % schedule_run.id, remove_str)
+        content_str = render_to_string('autoplanner/include/schedule.html',
+                                       context={'obj': schedule_run, 'organization': organization})
+        replace_with(window_info, '#schedule_%s' % schedule_run.id, content_str)
 
 
 def apply_schedule(organization_id, result_dict):

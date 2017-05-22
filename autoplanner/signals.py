@@ -2,17 +2,17 @@
 import calendar
 import csv
 import datetime
+import json
 import re
 
 import markdown
 from django import forms
-from django.conf import settings
 from django.utils.timezone import utc
 from django.utils.translation import ugettext as _
 from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm, Choice
 from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER, modal_show, INFO, modal_hide
 from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before, focus, \
-    content
+    content, replace_with
 from djangofloor.wsgi.window_info import render_to_string
 
 from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTokenForm, OrganizationMaxComputeTimeForm, \
@@ -29,7 +29,7 @@ from autoplanner.models import Organization, default_token, Category, Agent, Age
     MaxTaskAffectation, MaxTimeTaskAffectation, Task, ScheduleRun, API_KEY_VARIABLE
 from autoplanner.schedule import Scheduler
 from autoplanner.utils import python_to_components
-from autoplanner.tasks import compute_schedule, kill_schedule
+from autoplanner.tasks import compute_schedule, kill_schedule, apply_schedule
 
 __author__ = 'Matthieu Gallet'
 
@@ -869,6 +869,8 @@ def task_multiply(window_info, organization_pk: int, task_pk: int, form: Seriali
             new_name = obj.name
             name_index = 2
         current_category_pks = [x.pk for x in obj.categories.all()]
+        assert isinstance(start_time, datetime.datetime)
+        assert isinstance(limit, datetime.datetime)
         while start_time < limit:
             new_task = Task(organization_id=obj.organization_id, name='%s (%d)' % (new_name, name_index),
                             start_time=start_time, end_time=end_time, task_serie=task_serie)
@@ -1078,6 +1080,11 @@ def schedule_remove(window_info, organization_pk: int, schedule_pk: int):
 
 
 def change_tab_schedule(window_info, organization):
+    context = prepare_schedule_stats(organization)
+    render_to_client(window_info, 'autoplanner/tabs/schedule.html', context, '#schedule')
+
+
+def prepare_schedule_stats(organization):
     scheduler = Scheduler(organization)
     statistics = {x.pk: {category.pk: [0, datetime.timedelta(0), None] for category in scheduler.categories}
                   for x in scheduler.agents}
@@ -1118,7 +1125,6 @@ def change_tab_schedule(window_info, organization):
             elif scheduler.categories_by_pk[category_pk].balancing_mode == Category.BALANCE_TIME:
                 value = datetime.timedelta(seconds=duration.total_seconds() * count)
                 statistics[task.agent_id][category_pk][2] += value
-
     categories = [category for category in scheduler.categories]
     categories.sort(key=lambda x: x.name)
     agents = [agent for agent in scheduler.agents]
@@ -1127,7 +1133,7 @@ def change_tab_schedule(window_info, organization):
     context = {'obj': organization, 'statistics': sorted_statistics, 'agents': agents,
                'categories': categories, 'description': markdown.markdown(organization.description),
                'api_key_variable': API_KEY_VARIABLE, 'organization': organization}
-    render_to_client(window_info, 'autoplanner/tabs/schedule.html', context, '#schedule')
+    return context
 
 
 @signal(is_allowed_to=is_authenticated, path='autoplanner.calendar.month')
@@ -1204,8 +1210,49 @@ def calendar_week(window_info, organization_pk: int, year: int=None, month: int=
             if 0 <= row <= 23 and 0 <= col <= 6:
                 task_matrix[row][col][1].append(task)
     col_days = [(start + datetime.timedelta(days=x)).day for x in range(7)]
-
     previous_start = start - datetime.timedelta(days=7)
     context = {'matrix': task_matrix, 'month': start.month, 'year': start.year, 'organization': organization,
-               'previous_week': previous_start, 'next_week': end, 'month_str': month_str, 'col_days': col_days}
+               'start': start, 'end': end, 'previous_week': previous_start, 'next_week': end, 'month_str': month_str,
+               'col_days': col_days}
     render_to_client(window_info, 'autoplanner/calendars/by_week.html', context, '#schedule')
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.apply')
+def schedule_apply(window_info, organization_pk: int, schedule_pk: int):
+    organization = Organization.query(window_info).filter(pk=organization_pk).select_related('current_schedule').first()
+    if not organization:
+        return
+    schedule_run = ScheduleRun.objects.filter(organization__id=organization_pk, pk=schedule_pk).first()
+    old_schedule_run = organization.current_schedule
+    if not schedule_run or not schedule_run.result_dict:
+        return
+    result_dict = json.loads(schedule_run.result_dict)
+    try:
+        apply_schedule(organization_pk, result_dict)
+    except ValueError as e:
+        notify(window_info, str(e), style=NOTIFICATION, level=DANGER)
+        return
+    Organization.objects.filter(pk=organization_pk).update(current_schedule_id=schedule_pk)
+    ScheduleRun.objects.filter(organization__id=organization_pk).exclude(pk=schedule_pk)\
+        .update(is_selected=False)
+    ScheduleRun.objects.filter(pk=schedule_pk).update(is_selected=True)
+    schedule_run.is_selected = True
+    if old_schedule_run:
+        old_schedule_run.is_selected = False
+        content_str = render_to_string('autoplanner/include/schedule.html',
+                                       context={'obj': old_schedule_run, 'organization': organization})
+        replace_with(window_info, '#schedule_%s' % old_schedule_run.id, content_str)
+    content_str = render_to_string('autoplanner/include/schedule.html',
+                                   context={'obj': schedule_run, 'organization': organization})
+    replace_with(window_info, '#schedule_%s' % schedule_run.id, content_str)
+
+
+@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.info')
+def schedule_info(window_info, organization_pk: int):
+    organization = Organization.query(window_info).filter(pk=organization_pk).first()
+    if not organization:
+        return
+    context = prepare_schedule_stats(organization)
+    content_str = render_to_string('autoplanner/include/schedule_info.html',
+                                   context=context, window_info=window_info)
+    modal_show(window_info, content_str)

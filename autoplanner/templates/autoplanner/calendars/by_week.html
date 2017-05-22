@@ -6,7 +6,7 @@
 <button onclick="return false;" class="btn btn-sm btn-default">{% trans 'By week' %}</button>
 </div>
 </div><div class="help-block form-group"></div>
-<h2 class="text-center">{{ day }} {{ month_str }} {{ year|my_simple_str }}</h2>
+<h2 class="text-center">{{ start.day }} {{ month_str }} {{ year|my_simple_str }}</h2>
 <ul class="pager">
   <li class="previous"><a href="#" onclick="return $.df.call('autoplanner.calendar.week', {organization_pk: {{ organization.id|my_simple_str }}, day: {{ previous_week.day }}, month: {{ previous_week.month }}, year: {{ previous_week.year|my_simple_str }} });">&larr; {% trans 'Previous' %}</a></li>
   <li class="next"><a href="#" onclick="return $.df.call('autoplanner.calendar.week', {organization_pk: {{ organization.id|my_simple_str }}, day: {{ next_week.day }}, month: {{ next_week.month }}, year: {{ next_week.year|my_simple_str }} });">{% trans 'Next' %} &rarr;</a></li>

@@ -212,7 +212,7 @@ class Task(OrganizationObject):
     name = models.CharField(_('Name'), db_index=True, max_length=500)
     start_time = models.DateTimeField(_('Start time'), db_index=True, default=default_day_start)
     end_time = models.DateTimeField(_('End time'), db_index=True, default=default_day_end)
-    agent = models.ForeignKey(Agent, db_index=True, null=True, default=None, blank=True, on_delete=models.CASCADE)
+    agent = models.ForeignKey(Agent, db_index=True, null=True, default=None, blank=True, on_delete=models.SET_NULL)
     fixed = models.BooleanField(_('Forced agent'), db_index=True, default=False)
     task_serie = models.ForeignKey('self', db_index=True, null=True, default=None, on_delete=models.SET_NULL,
                                    blank=True)

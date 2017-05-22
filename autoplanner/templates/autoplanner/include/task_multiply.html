@@ -1,5 +1,5 @@
 {% load i18n autoplanner %}
-<form id="taskMultiplyForm" onsubmit="return $.df.call('autoplanner.forms.task_multiply', {form: $(this).serializeArray(), organization_pk: {{ organization.pk }}, task_pk: {{ task.pk }} })">
+<form id="taskMultiplyForm" onsubmit="return $.df.call('autoplanner.forms.task_multiply', {form: $(this).serializeArray(), organization_pk: {{ organization.id|my_simple_str }}, task_pk: {{ task.pk }} })">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
                 aria-hidden="true">&times;</span>
