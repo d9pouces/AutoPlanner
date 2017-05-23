@@ -211,3 +211,7 @@ class TaskMultipleRemoveForm(forms.Form):
 
 class TaskImportForm(forms.Form):
     csv_content = forms.CharField(widget=forms.Textarea())
+
+
+class OrganizationAddForm(forms.Form):
+    name = forms.CharField(label=_('Name'), max_length=500, min_length=1)

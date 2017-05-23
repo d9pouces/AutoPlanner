@@ -20,6 +20,6 @@
     <span class="pull-right">
     <i class="fa" id="check_max_compute_time"></i>
     </span>
-    <input type="text" class="form-control" id="id_max_compute_time" name="max_compute_time" onchange="$('#check_max_compute_time').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_max_compute_time', {organization_pk: {{ organization.id|my_simple_str }}, value: $(this).serializeArray()})" value="{% if organization.max_compute_time %}{{ organization.max_compute_time }}{% endif %}">
+    <input type="number" class="form-control" id="id_max_compute_time" name="max_compute_time" onchange="$('#check_max_compute_time').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_max_compute_time', {organization_pk: {{ organization.id|my_simple_str }}, value: $(this).serializeArray()})" value="{% if organization.max_compute_time %}{{ organization.max_compute_time|my_simple_str }}{% endif %}">
   </div>
 </form>

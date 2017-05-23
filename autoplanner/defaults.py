@@ -10,7 +10,7 @@ DF_INSTALLED_APPS = ['autoplanner', 'smart_selects']
 DF_JS = ['admin/js/core.js', 'admin/js/calendar.js', 'admin/js/admin/DateTimeShortcuts.js',
          'autoplanner/js/autoplanner.js']
 DF_CSS = ['autoplanner/css/autoplanner.css']
-FLOOR_INDEX = 'autoplanner.views.index'
+DF_INDEX_VIEW = 'autoplanner.views.index'
 DF_PROJECT_NAME = 'AutoPlanner'
 DF_SITE_SEARCH_VIEW = None
 # Make this unique, and don't share it with anybody.

@@ -25,7 +25,7 @@ from icalendar import Calendar, Event
 import markdown
 
 from autoplanner.admin import OrganizationAdmin
-from autoplanner.forms import MultiplyTaskForm
+from autoplanner.forms import MultiplyTaskForm, OrganizationAddForm
 from autoplanner.models import Organization, Task, Category, Agent, API_KEY_VARIABLE, ScheduleRun
 from autoplanner.schedule import Scheduler
 from autoplanner.tasks import compute_schedule, kill_schedule, apply_schedule
@@ -291,7 +291,20 @@ def generate_ics(request, organization_pk, agent_pk=None, category_pk=None, titl
 
 
 def index(request):
-    pass
+    query = Organization.query(request).order_by('name')
+    set_websocket_topics(request)
+    if request.method == 'POST' and request.user.is_authenticated:
+        form = OrganizationAddForm(request.POST)
+        if form.is_valid():
+            obj = Organization(name=form.cleaned_data['name'], max_compute_time=1800)
+            obj.save()
+            obj.admins = [request.user]
+            messages.success(request, _('Organization successfully created.'))
+            return HttpResponseRedirect(reverse('index'))
+    else:
+        form = OrganizationAddForm()
+    template_values = {'organizations': query, 'form': form}
+    return TemplateResponse(request, 'autoplanner/organizations.html', context=template_values)
 
 
 def organization_index(request, organization_pk):
