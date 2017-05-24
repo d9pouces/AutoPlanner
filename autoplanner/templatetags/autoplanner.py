@@ -3,7 +3,7 @@ from django import template
 from django.forms import TimeInput, DateInput
 from django.utils import formats
 from django.utils.safestring import mark_safe
-
+from markdown import markdown as mkdown
 from autoplanner.utils import python_to_str
 
 __author__ = 'Matthieu Gallet'
@@ -47,3 +47,8 @@ def js_value(value):
     if value is None:
         return mark_safe('null')
     return mark_safe(repr(value))
+
+
+@register.filter
+def markdown(value):
+    return mark_safe(mkdown(value))

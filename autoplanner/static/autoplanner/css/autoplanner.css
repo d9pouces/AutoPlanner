@@ -267,3 +267,6 @@ li.active a {
 .calendar {
     border-bottom: 1px solid #bbb;
 }
+.no-padding {
+    padding: 12px 15px 2px 15px;
+}

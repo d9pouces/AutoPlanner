@@ -13,7 +13,7 @@
                 <li>
                 <h3>{{ obj.name }} <small><a href="{% url 'organization_index' organization_pk=obj.pk %}">{% trans 'Modify' %}</a></small></h3>
                 {%  if obj.description %}
-                <p class="well">{{ obj.description }}</p>
+                <div class="well no-padding">{{ obj.description|markdown }}</div>
                 {%  endif %}
                 </li>
                 {% endfor %}
