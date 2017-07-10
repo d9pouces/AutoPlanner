@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-import os
-os.environ['DJANGOFLOOR_PROJECT_NAME'] = 'autoplanner'
-from djangofloor.scripts import gunicorn
+from djangofloor.scripts import gunicorn, set_env
+
+__author__ = 'Matthieu Gallet'
+
+set_env(command_name='autoplanner-gunicorn')
 gunicorn()
