@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from djangofloor.decorators import connect, SerializedForm
 
 from django.template import RequestContext

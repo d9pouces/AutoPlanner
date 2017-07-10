@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from djangofloor.iniconf import INI_MAPPING as DEFAULTS, OptionParser
 
 __author__ = 'Matthieu Gallet'

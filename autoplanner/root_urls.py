@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from django.views.i18n import javascript_catalog
 from django.views.static import serve
 from django.conf import settings

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from djangofloor.utils import ExpandIterable
 
 __author__ = 'Matthieu Gallet'

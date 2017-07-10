@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 from django.test import TestCase
 from django.utils.timezone import utc
