@@ -1,4 +1,4 @@
-from djangofloor.utils import ExpandIterable
+from djangofloor.conf.config_values import ExpandIterable
 
 __author__ = 'Matthieu Gallet'
 
