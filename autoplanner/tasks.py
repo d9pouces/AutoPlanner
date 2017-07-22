@@ -86,7 +86,7 @@ def compute_schedule(self, organization_id, window_info_data=None):
                                                                 't': time_format(end, use_l10n=True)}
             level = DANGER
         serialized_result_dict = json.dumps(result_dict, cls=SetJSONEncoder)
-        Organization.objects.filter(pk=organization_id).update(current_schedule_run_id=schedule_run.pk)
+        Organization.objects.filter(pk=organization_id).update(current_schedule_id=schedule_run.pk)
         ScheduleRun.objects.filter(pk=schedule_run.pk).update(celery_end=end, process_id=None, status=bool(result_dict),
                                                               result_dict=serialized_result_dict, is_selected=selected,
                                                               message=schedule_msg)
