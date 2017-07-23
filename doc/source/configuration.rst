@@ -81,7 +81,7 @@ or try to run the server interactively:
 .. code-block:: bash
 
   sudo service supervisor stop
-  sudo -u autoplanner -i
+  sudo -H -u autoplanner -i
   workon autoplanner
   autoplanner-manage config
   autoplanner-manage runserver
@@ -215,7 +215,7 @@ Of course, the Sentry client (Raven) must be separately installed, before testin
 
 .. code-block:: bash
 
-  sudo -u autoplanner -i
+  sudo -H -u autoplanner -i
   autoplanner-manage raven test
 
 

@@ -29,14 +29,14 @@ After any change in the database configuration or any upgrade, you must migrate 
 
 .. code-block:: bash
 
-    sudo -u autoplanner autoplanner-manage migrate
+    sudo -H -u autoplanner autoplanner-manage migrate
 
 
 After installation and configuration, do not forget to create a superuser:
 
 .. code-block:: bash
 
-    sudo -u autoplanner autoplanner-manage createsuperuser
+    sudo -H -u autoplanner autoplanner-manage createsuperuser
 
 
 
@@ -82,7 +82,7 @@ We use logrotate to backup the database, with a new file each day.
 
   sudo mkdir -p /var/backups/autoplanner
   sudo chown -r autoplanner: /var/backups/autoplanner
-  sudo -u autoplanner -i
+  sudo -H -u autoplanner -i
   cat << EOF > /etc/autoplanner/backup_db.conf
   /var/backups/autoplanner/backup_db.sql.gz {
     daily
@@ -187,7 +187,7 @@ Of course, the Sentry client (Raven) must be separately installed, before testin
 
 .. code-block:: bash
 
-  sudo -u autoplanner -i
+  sudo -H -u autoplanner -i
   autoplanner-manage raven test
 
 
