@@ -31,7 +31,6 @@ urlpatterns = [url(r'^jsi18n/$', javascript_catalog, {'packages': ('djangofloor'
                url('^tasks/multiply/(?P<task_pk>\d+)\.html', views.multiply_task, name='multiply_task'),
                url('^tasks/apply_schedule_run/(?P<schedule_run_pk>\d+)\.html', views.apply_schedule_run,
                    name='apply_schedule_run'),
-               url(r'^chaining/', include('smart_selects.urls')),
                url(r'^', include(admin_urls[:2])),
                url(r'^organization/(?P<organization_pk>\d+)/$', views.organization_index, name='organization_index'),
                url(r'^$', views.index, name='index'),

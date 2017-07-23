@@ -6,7 +6,6 @@ from autoplanner import views
 __author__ = 'Matthieu Gallet'
 app_name = 'autoplanner'
 urlpatterns = [
-    url(r'^chaining/', include('smart_selects.urls')),
     url(r'^organization/(?P<organization_pk>\d+)/$', views.organization_index, name='organization_index'),
 
     url(r'^org/(?P<organization_pk>\d+)\.html', views.organization, name='organization'),
