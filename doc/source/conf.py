@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# 
 # This file is execfile()d with the current directory set to its containing dir.
 # 
 # Note that not all possible configuration values are present in this
@@ -57,7 +55,7 @@ master_doc = 'index'
 # General information about the project.
 project = 'AutoPlanner'
 # noinspection PyShadowingBuiltins
-copyright = '2016, %s' % author
+copyright = '2017, %s' % author
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -235,9 +233,9 @@ man_pages = [
 
 # Bibliographic Dublin Core info.
 epub_title = "AutoPlanner"
-epub_author = author
+epub_author = ''
 epub_publisher = "19pouces.net"
-epub_copyright = '2016, %s' % author
+epub_copyright = '2017, %s' % author
 
 # The language of the text. It defaults to the language option
 # or en if the language is not set.

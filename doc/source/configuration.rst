@@ -10,65 +10,188 @@ You can look current settings with the following command:
 
 .. code-block:: bash
 
-    autoplanner-manage config
+    autoplanner-manage config ini -v 2
+
+You can also display the actual list of Python settings
+
+.. code-block:: bash
+
+    autoplanner-manage config python -v 2
+
 
 Here is the complete list of settings:
 
 .. code-block:: ini
 
+  [auth]
+  allow_basic_auth = True 
+  	# Set to "true" if you want to allow HTTP basic auth, using the Django database.
+  ldap_bind_dn =  
+  	# Bind dn for LDAP authentication
+  ldap_bind_password =  
+  	# Bind password for LDAP authentication
+  ldap_direct_bind =  
+  	# Set it for a direct LDAP bind, like "uid=%(user)s,ou=users,dc=example,dc=com"
+  ldap_filter = (uid=%(user)s) 
+  	# Filter for LDAP authentication, like "(uid=%(user)s)".
+  ldap_search_base = ou=users,dc=example,dc=com 
+  	# Search base for LDAP authentication, like "ou=users,dc=example,dc=com".
+  ldap_server_url =  
+  	# URL of your LDAP server, like "ldap://ldap.example.com". Python packages "pyldap" and "django-auth-ldap" must be installed.
+  ldap_start_tls = False
+  remote_user_groups = Users 
+  	# Comma-separated list of groups, for new users that automatically created when authenticated by a HTTP header.
+  remote_user_header =  
+  	# Set it if you want to use HTTP authentication, a common value is "HTTP-REMOTE-USER".
+  
+  [cache]
+  db = 2 
+  	# Database number of the Redis Cache DB. 
+  	# Python package "django-redis" is required.
+  host = localhost 
+  	# Redis Cache DB host
+  password =  
+  	# Redis Cache DB password (if required)
+  port = 6379 
+  	# Redis Cache DB port
+  
   [celery]
-  redis_db = 13
-  # database name of your Celery instance
-  redis_host = localhost
-  # hostname of your Redis database for Redis-based services (cache, Celery, websockets, sessions)
-  redis_port = 6379
-  # port of your Redis database
+  db = 4 
+  	# Database number of the Redis Celery DB 
+  	# Celery is used for processing background tasks and websockets.
+  host = localhost 
+  	# Redis Celery DB host
+  password =  
+  	# Redis Celery DB password (if required)
+  port = 6379 
+  	# Redis Celery DB port
+  redis_db = [[]]
+  redis_host = [[]]
+  redis_port = [[]]
+  
   [database]
-  engine = django.db.backends.postgresql
-  # SQL database engine, can be 'django.db.backends.[postgresql|mysql|sqlite3|oracle]'.
-  host = localhost
-  # Empty for localhost through domain sockets or "127.0.0.1" for localhost + TCP
-  name = autoplanner
-  # Name of your database, or path to database file if using sqlite3.
-  password = 5trongp4ssw0rd
-  # Database password (not used with sqlite3)
-  port = 5432
-  # Database port, leave it empty for default (not used with sqlite3)
-  user = autoplanner
-  # Database user (not used with sqlite3)
+  db = /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/database.sqlite3 
+  	# Main database name (or path of the sqlite3 database)
+  engine = sqlite3 
+  	# Main database engine ("mysql", "postgresql", "sqlite3", "oracle", or the dotted name of the Django backend)
+  host =  
+  	# Main database host
+  password =  
+  	# Main database password
+  port =  
+  	# Main database port
+  user =  
+  	# Main database user
+  
+  [email]
+  from = admin@localhost 
+  	# Displayed sender email
+  host = localhost 
+  	# SMTP server
+  password =  
+  	# SMTP password
+  port = 25 
+  	# SMTP port (often 25, 465 or 587)
+  use_ssl = False 
+  	# "true" if your SMTP uses SSL (often on port 465)
+  use_tls = False 
+  	# "true" if your SMTP uses STARTTLS (often on port 587)
+  user =  
+  	# SMTP user
+  
   [global]
-  admin_email = admin@autoplanner.example.org
-  # error logs are sent to this e-mail address
-  bind_address = 127.0.0.1:9000
-  # The socket (IP address:port) to bind to.
-  data_path = /var/autoplanner
-  # Base path for all data
-  debug = True
-  # A boolean that turns on/off debug mode.
-  default_group = Users
-  # Name of the default group for newly-created users.
-  extra_apps = 
-  # List of extra installed Django apps (separated by commas).
-  language_code = fr-fr
-  # A string representing the language code for this installation.
-  protocol = http
-  # Protocol (or scheme) used by your webserver (apache/nginx/…, can be http or https)
-  remote_user_header = HTTP_REMOTE_USER
-  # HTTP header corresponding to the username when using HTTP authentication.Should be "HTTP_REMOTE_USER". Leave it empty to disable HTTP authentication.
-  secret_key = 8FOOc2ETUHpRYqYvcZ6cvmXD2sz1W88JQjUQFpvHH0KeWRioyU
-  # A secret key for a particular Django installation. This is used to provide cryptographic signing, and should be set to a unique, unpredictable value.
-  server_name = autoplanner.example.org
-  # the name of your webserver (should be a DNS name, but can be an IP address)
-  time_zone = Europe/Paris
-  # A string representing the time zone for this installation, or None. 
-  [sentry]
-  dsn_url = 
-  # Sentry URL to send data to. https://docs.getsentry.com/
+  admin_email = admin@localhost 
+  	# e-mail address for receiving logged errors
+  data = /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner 
+  	# where all data will be stored (static/uploaded/temporary files, …). If you change it, you must run the collectstatic and migrate commands again.
+  language_code = fr-fr 
+  	# default to fr_FR
+  listen_address = localhost:9000 
+  	# address used by your web server.
+  log_remote_url =  
+  	# Send logs to a syslog or systemd log daemon.  
+  	# Examples: syslog+tcp://localhost:514/user, syslog:///local7, syslog:///dev/log/daemon, logd:///project_name
+  log_slow_queries_duration =  
+  	# DB queries that take more than this threshold (in seconds) are logged.Deactivated if left empty.
+  refresh_duration = 1H
+  server_url = http://localhost:9000/ 
+  	# Public URL of your website.  
+  	# Default to "http://listen_address" but should be ifferent if you use a reverse proxy like Apache or Nginx. Example: http://www.example.org.
+  time_zone = Europe/Paris 
+  	# default to Europe/Paris
+  
+  [server]
+  processes = 2 
+  	# The number of Gunicorn processes for handling requests.
+  threads = 2 
+  	# The number of Gunicorn threads for handling requests.
+  timeout = 30 
+  	# Workers silent for more than this many seconds are killed and restarted.
+  
+  [sessions]
+  db = 3 
+  	# Database number of the Redis sessions DB 
+  	# Python package "django-redis-sessions" is required.
+  host = localhost 
+  	# Redis sessions DB host
+  password =  
+  	# Redis sessions DB password (if required)
+  port = 6379 
+  	# Redis sessions DB port
+  
+  [websocket]
+  db = 3 
+  	# Database number of the Redis websocket DB
+  host = localhost 
+  	# Redis websocket DB host
+  password =  
+  	# Redis websocket DB password (if required)
+  port = 6379 
+  	# Redis websocket DB port
+  
 
 
 
 If you need more complex settings, you can override default values (given in `djangofloor.defaults` and
-`autoplanner.defaults`) by creating a file named `/home/autoplanner/.virtualenvs/autoplanner/etc/autoplanner/settings.py`.
+`autoplanner.defaults`) by creating a file named `/autoplanner/settings.py`.
+
+
+
+Optional components
+-------------------
+
+Efficient page caching
+~~~~~~~~~~~~~~~~~~~~~~
+
+You just need to install `django-redis`.
+Settings are automatically changed for using a local Redis server (of course, you can change it in your config file).
+
+.. code-block:: bash
+
+  pip install django-redis
+
+Faster session storage
+~~~~~~~~~~~~~~~~~~~~~~
+
+You just need to install `django-redis-sessions` for storing sessions into user sessions in Redis instead of storing them in the main database.
+Redis is not designed to be backuped; if you loose your Redis server, sessions are lost and all users must login again.
+However, Redis is faster than your main database server and sessions take a huge place if they are not regularly cleaned.
+Settings are automatically changed for using a local Redis server (of course, you can change it in your config file).
+
+.. code-block:: bash
+
+  pip install django-redis-sessions
+
+Optimized media files
+~~~~~~~~~~~~~~~~~~~~~
+
+You can use `Django-Pipeline <https://django-pipeline.readthedocs.io/en/latest/configuration.html>`_ to merge all media files (CSS and JS) for a faster site.
+
+.. code-block:: bash
+
+  pip install django-pipeline
+
+Optimized JavaScript files are currently deactivated due to syntax errors in generated files (not my fault ^^).
 
 
 
@@ -85,8 +208,8 @@ or try to run the server interactively:
   workon autoplanner
   autoplanner-manage config
   autoplanner-manage runserver
-  autoplanner-gunicorn
-  autoplanner-celery worker
+  autoplanner-web
+  autoplanner-celery worker -Q celery,fast
 
 
 
@@ -110,8 +233,8 @@ We use logrotate to backup the database, with a new file each day.
 
   sudo mkdir -p /var/backups/autoplanner
   sudo chown -r autoplanner: /var/backups/autoplanner
-  sudo -u autoplanner -i
-  cat << EOF > /home/autoplanner/.virtualenvs/autoplanner/etc/autoplanner/backup_db.conf
+  sudo -H -u autoplanner -i
+  cat << EOF > /etc/autoplanner/backup_db.conf
   /var/backups/autoplanner/backup_db.sql.gz {
     daily
     rotate 20
@@ -119,15 +242,18 @@ We use logrotate to backup the database, with a new file each day.
     missingok
     create 640 autoplanner autoplanner
     postrotate
-    myproject-manage dumpdb | gzip > /var/backups/autoplanner/backup_db.sql.gz
+    moneta-manage dumpdb | gzip > /var/backups/autoplanner/backup_db.sql.gz
     endscript
   }
   EOF
   touch /var/backups/autoplanner/backup_db.sql.gz
   crontab -e
-  MAILTO=admin@autoplanner.example.org
-  0 1 * * * /home/autoplanner/.virtualenvs/autoplanner/bin/autoplanner-manage clearsessions
-  0 2 * * * logrotate -f /home/autoplanner/.virtualenvs/autoplanner/etc/autoplanner/backup_db.conf
+  MAILTO=admin@localhost
+  0 1 * * * autoplanner-manage clearsessions
+  0 2 * * * logrotate -f /etc/autoplanner/backup_db.conf
+
+
+Note that clearing sessions is not required with Redis.
 
 
 Backup of the user-created files can be done with rsync, with a full backup each month:
@@ -137,7 +263,7 @@ If you have a lot of files to backup, beware of the available disk place!
 
   sudo mkdir -p /var/backups/autoplanner/media
   sudo chown -r autoplanner: /var/backups/autoplanner
-  cat << EOF > /home/autoplanner/.virtualenvs/autoplanner/etc/autoplanner/backup_media.conf
+  cat << EOF > /etc/autoplanner/backup_media.conf
   /var/backups/autoplanner/backup_media.tar.gz {
     monthly
     rotate 6
@@ -151,72 +277,18 @@ If you have a lot of files to backup, beware of the available disk place!
   EOF
   touch /var/backups/autoplanner/backup_media.tar.gz
   crontab -e
-  MAILTO=admin@autoplanner.example.org
-  0 3 * * * rsync -arltDE /var/autoplanner/data/media/ /var/backups/autoplanner/media/
-  0 5 0 * * logrotate -f /home/autoplanner/.virtualenvs/autoplanner/etc/autoplanner/backup_media.conf
+  MAILTO=admin@localhost
+  0 3 * * * rsync -arltDE /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/media/ /var/backups/autoplanner/media/
+  0 5 0 * * logrotate -f /etc/autoplanner/backup_media.conf
 
 Restoring a backup
 ~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-  cat /var/backups/autoplanner/backup_db.sql.gz | gunzip | /home/autoplanner/.virtualenvs/autoplanner/bin/autoplanner-manage dbshell
-  tar -C /var/autoplanner/data/media/ -xf /var/backups/autoplanner/backup_media.tar.gz
+  cat /var/backups/autoplanner/backup_db.sql.gz | gunzip | autoplanner-manage dbshell
+  tar -C /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/media/ -xf /var/backups/autoplanner/backup_media.tar.gz
 
-
-
-
-
-Monitoring
-----------
-
-
-Nagios or Shinken
-~~~~~~~~~~~~~~~~~
-
-You can use Nagios checks to monitor several points:
-
-  * connection to the application server (gunicorn or uwsgi):
-  * connection to the database servers (PostgreSQL and Redis),
-  * connection to the reverse-proxy server (apache or nginx),
-  * the validity of the SSL certificate (can be combined with the previous check),
-  * creation date of the last backup (database and files),
-  * living processes for gunicorn, celery, redis, postgresql, apache,
-  * standard checks for RAM, disk, swap…
-
-Here is a sample NRPE configuration file:
-
-.. code-block:: bash
-
-  cat << EOF | sudo tee /etc/nagios/nrpe.d/autoplanner.cfg
-  command[autoplanner_wsgi]=/usr/lib/nagios/plugins/check_http -H 127.0.0.1 -p 9000
-  command[autoplanner_redis]=/usr/lib/nagios/plugins/check_tcp -H localhost -p 6379
-  command[autoplanner_database]=/usr/lib/nagios/plugins/check_tcp -H localhost -p 5432
-  command[autoplanner_reverse_proxy]=/usr/lib/nagios/plugins/check_http -H autoplanner.example.org -p 80 -e 401
-  command[autoplanner_backup_db]=/usr/lib/nagios/plugins/check_file_age -w 172800 -c 432000 /var/backups/autoplanner/backup_db.sql.gz
-  command[autoplanner_backup_media]=/usr/lib/nagios/plugins/check_file_age -w 3024000 -c 6048000 /var/backups/autoplanner/backup_media.sql.gz
-  command[autoplanner_gunicorn]=/usr/lib/nagios/plugins/check_procs -C python -a '/home/autoplanner/.virtualenvs/autoplanner/bin/autoplanner-gunicorn'
-  command[autoplanner_celery]=/usr/lib/nagios/plugins/check_procs -C python -a '/home/autoplanner/.virtualenvs/autoplanner/bin/autoplanner-celery worker'
-  EOF
-
-Sentry
-~~~~~~
-
-For using Sentry to log errors, you must add `raven.contrib.django.raven_compat` to the installed apps.
-
-.. code-block:: ini
-
-  [global]
-  extra_apps = raven.contrib.django.raven_compat
-  [sentry]
-  dsn_url = https://[key]:[secret]@app.getsentry.com/[project]
-
-Of course, the Sentry client (Raven) must be separately installed, before testing the installation:
-
-.. code-block:: bash
-
-  sudo -H -u autoplanner -i
-  autoplanner-manage raven test
 
 
 
@@ -231,5 +303,5 @@ There are two possibilities to use LDAP groups, with their own pros and cons:
   * regularly synchronize groups between the LDAP server and the SQL servers.
 
 The second approach can be used without any modification in your code and remove a point of failure
-in the global architecture (if you allow some delay during the synchronization process).
-A tool exists for such synchronization: `MultiSync <https://github.com/d9pouces/Multisync>`_.
+in the global architecture (if you can afford regular synchronizations instead of instant replication).
+At least one tool exists for such synchronization: `MultiSync <https://github.com/d9pouces/Multisync>`_.
