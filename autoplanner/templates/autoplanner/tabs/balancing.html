@@ -1,0 +1,43 @@
+{% load i18n %}
+
+<p class="well">{% blocktrans %}You can add some constraints to obtain a better schedule.
+
+    You can limit the total time passed by a given resource on tasks of a given type,
+    or on the contrary ensures that any resource processes at least a certain number of tasks of another kind.
+    {% endblocktrans %}</p>
+
+<table class="table table-striped" id="max-task-affectation-table">
+    <tr>
+        <th>&nbsp;</th>
+        <th>{% trans 'At most or at least…' %}</th>
+        <th>{% trans 'this number…' %}</th>
+        <th>{% trans 'of tasks of category…' %}</th>
+        <th>{% trans 'within this period' %}</th>
+        <th>&nbsp;</th>
+    </tr>
+    {% for obj in max_task_affectations %}
+    {% include 'autoplanner/include/max_task_affectation.html' %}
+    {% endfor %}
+    {% with obj=new_max_task_affectation %}
+    {% include 'autoplanner/include/max_task_affectation.html' %}
+    {% endwith %}
+</table>
+
+
+<table class="table table-striped" id="max-time-affectation-table">
+    <tr>
+        <th>&nbsp;</th>
+        <th>{% trans 'At most or at least…' %}</th>
+        <th>{% trans 'this time…' %}</th>
+        <th>{% trans 'on tasks of category…' %}</th>
+        <th>{% trans 'within this period' %}</th>
+        <th>&nbsp;</th>
+    </tr>
+    {% for obj in max_time_affectations %}
+    {% include 'autoplanner/include/max_time_affectation.html' %}
+    {% endfor %}
+    {% with obj=new_max_time_affectation %}
+    {% include 'autoplanner/include/max_time_affectation.html' %}
+    {% endwith %}
+</table>
+

@@ -1,0 +1,38 @@
+{% extends 'autoplanner/base.html' %}
+{% load bootstrap3 i18n autoplanner %}
+
+{% block body-container %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-1 col-lg-1 col-sm-1">
+        </div>
+        <div class="col-md-10 col-lg-10 col-sm-10">
+            <h1>{% trans 'Current organizations' %}</h1>
+            <ul class="list-unstyled">
+                {% for obj in organizations %}
+                <li>
+                <h3>{{ obj.name }} <small><a href="{% url 'organization_index' organization_pk=obj.pk %}">{% trans 'Modify' %}</a></small></h3>
+                {%  if obj.description %}
+                <div class="well no-padding">{{ obj.description|markdown }}</div>
+                {%  endif %}
+                </li>
+                {% endfor %}
+            {% if perms.autoplanner.add_organization %}
+            <li>
+                <h2>{% trans 'New organization' %}</h2>
+                <div class="panel panel-info"><div class="panel-heading">{%  trans 'Create a new organization' %}</div>
+            <form method="post" action="?" class="panel-body">
+                {%  bootstrap_form form %}
+                <input class="btn btn-sm btn-info" value="{% trans 'Create!' %}" type="submit">
+                {% csrf_token %}
+            </form></div>
+            </li>
+            {%  endif %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

@@ -30,7 +30,6 @@ django-debug-toolbar==1.4
 django-pipeline==1.6.5
 django-redis==4.3.0
 django-redis-cache==1.6.5
-django-smart-selects==1.2.2
 -e git+https://github.com/d9pouces/django-floor.git@fe9557dff5dc28dd948f05637117420d1a903d80#egg=djangofloor
 funcsigs==0.4
 gunicorn==19.4.5

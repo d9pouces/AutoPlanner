@@ -277,7 +277,7 @@ class Scheduler(object):
     def variable(agent_pk, task_pk):
         return 'v_a%s_e%s' % (agent_pk, task_pk)
 
-    result_line_re = '^v_a(\d+)_e(\d+)\s+1$'
+    result_line_re = r'^v_a(\d+)_e(\d+)\s+1$'
 
     @staticmethod
     def category_variable(category_pk, agent_pk=None):

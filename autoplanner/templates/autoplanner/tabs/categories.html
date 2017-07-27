@@ -1,0 +1,25 @@
+{% load i18n %}
+<p class="well">{% blocktrans %}To ensure that two overlapping tasks are assigned to different resources,
+    they must belong to the same category.
+<br>
+    Schedule takes into account the balance of tasks before dispatching them to resources. However, you can only define
+    one type of balancing for each type of tasks: balancing the total time used by each resource, or the number of tasks
+    made by each resource.
+    {% endblocktrans %}</p>
+<table class="table table-striped" id="category-table">
+    <tr>
+        <th>&nbsp;</th>
+        <th>{% trans 'Name' %}</th>
+        <th>{% trans 'How to balance tasks of this category accross resources?' %}</th>
+        <th>{% trans 'Which difference do you tolerate between the least and the most used resources?' %}</th>
+        <th>{% trans 'Bonus given when two successive tasks are assigned to the same resource?' %}</th>
+        <th>&nbsp;</th>
+    </tr>
+    {% for obj in categories %}
+    {% include 'autoplanner/include/category.html' %}
+    {% endfor %}
+    {% with obj=new_category %}
+    {% include 'autoplanner/include/category.html' %}
+    {% endwith %}
+</table>
+

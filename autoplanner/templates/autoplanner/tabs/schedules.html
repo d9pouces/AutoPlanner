@@ -1,0 +1,22 @@
+{% load i18n %}
+<p class="well">{% blocktrans %}Here is the list of computed schedules.
+<br>
+    By default, only the last valid schedule is loaded, but you can reload any previous schedule.
+
+Only the ability of assignment of all tasks to resources (and the non-overlapping of tasks) is checked.
+So, if you added extra constraints or if you changed the balancing rules, then they can be broken by the loaded schedule.
+    {% endblocktrans %}</p>
+<table class="table table-striped" id="schedules-table">
+    <tr id="schedules-header">
+        <th>{% trans 'Is valid?' %}</th>
+        <th>{% trans 'Result' %}</th>
+        <th>{% trans 'Start time' %}</th>
+        <th>{% trans 'End time' %}</th>
+        <th>{% trans 'Select it' %}</th>
+        <th>&nbsp;</th>
+    </tr>
+    {% for obj in schedules %}
+    {% include 'autoplanner/include/schedule.html' %}
+    {% endfor %}
+</table>
+

@@ -1,0 +1,44 @@
+{% load i18n autoplanner %}
+<div class="help-block form-group"></div>
+<div class="text-center"><div class="btn-group">
+<button onclick="return $.df.call('autoplanner.change_tab', {organization_pk: {{ organization.id|my_simple_str }}, tab_name: 'schedule'});" class="btn btn-sm btn-info">{% trans 'Abstract' %}</button>
+<button onclick="return $.df.call('autoplanner.calendar.month', {organization_pk: {{ organization.id|my_simple_str }} });" class="btn btn-sm btn-info">{% trans 'By month' %}</button>
+<button onclick="return false;" class="btn btn-sm btn-default">{% trans 'By week' %}</button>
+</div>
+</div><div class="help-block form-group"></div>
+<h2 class="text-center">{{ start.day }} {{ month_str }} {{ year|my_simple_str }}</h2>
+<ul class="pager">
+  <li class="previous"><a href="#" onclick="return $.df.call('autoplanner.calendar.week', {organization_pk: {{ organization.id|my_simple_str }}, day: {{ previous_week.day }}, month: {{ previous_week.month }}, year: {{ previous_week.year|my_simple_str }} });">&larr; {% trans 'Previous' %}</a></li>
+  <li class="next"><a href="#" onclick="return $.df.call('autoplanner.calendar.week', {organization_pk: {{ organization.id|my_simple_str }}, day: {{ next_week.day }}, month: {{ next_week.month }}, year: {{ next_week.year|my_simple_str }} });">{% trans 'Next' %} &rarr;</a></li>
+</ul>
+
+<table class="table table-striped calendar">
+<tr>
+    <td>&nbsp;</td>
+    <th>{% trans 'Mon' %} {{ col_days.0 }}</th>
+    <th>{% trans 'Tue' %} {{ col_days.1 }}</th>
+    <th>{% trans 'Wed' %} {{ col_days.2 }}</th>
+    <th>{% trans 'Thu' %} {{ col_days.3 }}</th>
+    <th>{% trans 'Fri' %} {{ col_days.4 }}</th>
+    <th>{% trans 'Sat' %} {{ col_days.5 }}</th>
+    <th>{% trans 'Sun' %} {{ col_days.6 }}</th>
+</tr>
+{% for row_data in matrix %}
+<tr>
+    <th>
+        <p class="text-center"><strong>{{ forloop.counter0|int_format:"02" }}:00</strong></p>
+    </th>
+{% for col_data in row_data %}
+<td>
+{% if col_data.1 %}<ul class="list-unstyled">
+    {% for task in col_data.1 %}
+    <li>{{ task.name }}
+        {% if task.agent and task.fixed %}<span class="label label-primary">{{ task.agent.name }}</span>
+        {% elif task.agent %}<span class="label label-default">({{ task.agent.name }})</span>
+        {% endif %}
+    </li>
+{% endfor %}</ul>
+{% endif %}</td>{% endfor %}
+</tr>
+{% endfor %}
+</table>

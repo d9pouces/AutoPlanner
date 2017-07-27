@@ -1,0 +1,19 @@
+{% load i18n l10n autoplanner %}
+<div class="help-block form-group"></div>
+<div class="text-center"><div class="btn-group">
+<button onclick="return false;" class="btn btn-sm btn-default">{% trans 'Abstract' %}</button>
+<button onclick="return $.df.call('autoplanner.calendar.month', {organization_pk: {{ organization.id|my_simple_str }} });" class="btn btn-sm btn-info">{% trans 'By month' %}</button>
+<button onclick="return $.df.call('autoplanner.calendar.week', {organization_pk: {{ organization.id|my_simple_str }} });" class="btn btn-sm btn-info">{% trans 'By week' %}</button>
+</div></div>
+<div class="help-block form-group"></div>
+<table class="table table-striped calendar">
+    <tr><th>{% trans 'Calendar' %}</th><th>{% trans 'Agent' %}</th>{% for category in categories %}<th>{{ category }} <small><a href="{% url 'ical' organization_pk=obj.pk category_pk=category.pk title=category.name %}?{{ api_key_variable }}={{ obj.access_token }}">{% trans 'iCal' %}</a></small></th>{% endfor %}</tr>
+{% for agent_data in statistics %}<tr>
+<td><a href="{% url 'ical' organization_pk=obj.pk agent_pk=agent_data.0.pk title=agent_data.0.name %}?{{ api_key_variable }}={{ obj.access_token }}">{% trans 'iCal' %}</a></td>
+{% for x in agent_data %}<td>{% if forloop.first %}<strong>{{ x }}</strong>
+{% else %}{% trans 'tasks: ' %}{{ x.0 }}{% trans ', total time: ' %}{{ x.1|localize }}{% if x.2 %} (corrected value: {{ x.2|localize }}){% endif %}
+{% endif %}
+</td>{% endfor %}
+</tr>
+{% endfor %}
+</table>

@@ -1,0 +1,39 @@
+{% load i18n autoplanner %}
+<form id="taskMultiplyForm" onsubmit="return callTask(undefined, undefined, undefined, undefined, 'autoplanner.forms.task_multiple_update', {form: $(this).serializeArray()})">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title">{% trans 'Modify selected tasks' %}</h4>
+    </div>
+    <div class="modal-body">
+        <p>{% trans 'You can force these tasks to be executed by a specific resource.' %}</p>
+        <div class="form-group">
+            <label for="multiple_update_agent">{% trans 'Affect selection to:' %}</label>
+            <select name="agent" class="form-control" id="multiple_update_agent">
+                <option value="">({% trans 'not assigned' %})</option>
+                {% for agent in agents %}<option value="{{ agent.id }}">{{ agent.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <p><input name="fix" type="checkbox" value="yes" id="multiple_update_fix"> <label for="multiple_update_fix">{% trans ' or you can only confirm the current proposition,' %}</label>
+            </p>
+        <p><input name="unfix" type="checkbox" value="yes" id="multiple_update_unfix"> <label for="multiple_update_unfix">{% trans ' you can also unvalidate the current proposition.' %}</label>
+            </p>
+        <p>{% trans 'Finally, you can set the categories of selected tasks:' %}</p>
+        <select name="categories" class="form-control" multiple="multiple">
+            {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="modal-footer">
+        <div class="btn-group">
+            <button type="button" class="btn btn-danger" onclick="return callTask(undefined, undefined, undefined, undefined, 'autoplanner.forms.task_multiple_remove', {form: $('#taskMultiplyForm').serializeArray()});">{% trans 'Update selected tasks' %}</button>
+            <input type="submit" class="btn btn-success" value="{% trans 'Update selected tasks' %}"/>
+            <button type="button" class="btn btn-default" data-dismiss="modal">{% trans 'Close' %}</button>
+        </div>
+    </div>
+</form>
+<script type="application/javascript">
+   $('#tasks_table input[type=checkbox]:checked').each(function (index, value) {
+        $('<input/>', {type: 'hidden', name: "tasks", value: value.value}).appendTo('#taskMultiplyForm');
+    });
+</script>

@@ -1,0 +1,86 @@
+{% extends 'autoplanner/base.html' %}
+{% load bootstrap3 i18n autoplanner %}
+
+{% block body-container %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-1 col-lg-1 col-sm-1">
+        </div>
+        <div class="col-md-10 col-lg-10 col-sm-10">
+            <p id="organization_message"></p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-1 col-lg-1 col-sm-1">
+        </div>
+        <div class="col-md-10 col-lg-10 col-sm-10">
+
+            <ul class="nav nav-tabs" id="global_tabs">
+                <li><a id="a_general" class="main_tabs" href="#general" data-toggle="tab">{% trans 'General' %}</a></li>
+                <li><a id="a_schedule" class="main_tabs" href="#schedule" data-toggle="tab">{% trans 'Schedule' %}</a></li>
+                <li><a id="a_categories" class="main_tabs" href="#categories" data-toggle="tab">{% trans 'Categories' %}</a></li>
+                <li><a id="a_agents" class="main_tabs" href="#agents" data-toggle="tab">{% trans 'Resources' %}</a></li>
+                <li><a id="a_balancing" class="main_tabs" href="#balancing" data-toggle="tab">{% trans 'Constraints' %}</a></li>
+                <li><a id="a_tasks" class="main_tabs" href="#tasks" data-toggle="tab">{% trans 'Tasks' %}</a></li>
+                <li><a id="a_schedules" class="main_tabs" href="#schedules" data-toggle="tab">{% trans 'Schedules' %}</a></li>
+            </ul></div>
+    </div>
+    <div class="row">
+        <div class="col-md-1 col-lg-1 col-sm-1">
+        </div>
+        <div class="col-md-10 col-lg-10 col-sm-10">
+        <span class="center" id="schedule_status">{% include 'autoplanner/include/schedule_status.html' %}</span>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-1 col-lg-1 col-sm-1">
+        </div>
+        <div class="col-md-10 col-lg-10 col-sm-10">
+
+            <div class="tab-content">
+                <div class="tab-pane active" id="general">...</div>
+                <div class="tab-pane" id="schedule">...</div>
+                <div class="tab-pane" id="balancing">...</div>
+                <div class="tab-pane" id="categories">...</div>
+                <div class="tab-pane" id="agents">...</div>
+                <div class="tab-pane" id="tasks">...</div>
+                <div class="tab-pane" id="schedules">...</div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/admin/jsi18n/"></script>
+{% endblock %}
+
+{% block scripts %}
+
+<script type="application/javascript">
+    django.jQuery = $;
+    $(function () {
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            $.df.call('autoplanner.change_tab', {organization_pk: {{ organization.id|my_simple_str }}, tab_name: e.target.id.substr(2)});
+        });
+        $('#global_tabs a:first').tab('show')
+    });
+    function agent_u(signal_name, obj_id, form) {
+        $('#check_agent_' + obj_id).attr('class', 'fa fa-spin fa-spinner');
+        if(form) {
+            $.df.call('autoplanner.forms.' + signal_name, {organization_pk: {{ organization.id|my_simple_str }}, agent_pk: obj_id, value: $(form).serializeArray()});
+        }
+        else {
+            $.df.call('autoplanner.forms.' + signal_name, {organization_pk: {{ organization.id|my_simple_str }}, agent_pk: obj_id});
+        }
+        return false;
+    }
+    function task_u(signal_name, obj_id, form) {
+        $('#check_task_' + obj_id).attr('class', 'fa fa-spin fa-spinner');
+        if(form) {
+            $.df.call('autoplanner.forms.' + signal_name, {organization_pk: {{ organization.id|my_simple_str }}, task_pk: obj_id, value: $(form).serializeArray()});
+        }
+        else {
+            $.df.call('autoplanner.forms.' + signal_name, {organization_pk: {{ organization.id|my_simple_str }}, task_pk: obj_id});
+        }
+        return false;
+    }
+</script>
+{% endblock %}

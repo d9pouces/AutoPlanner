@@ -1,0 +1,30 @@
+{% load i18n autoplanner %}<tr id="schedule_{{ obj.id|my_simple_str }}">
+    <td class="schedule-status">
+        {% if obj.status is None %}<i class="fa fa-spin fa-spinner"></i>
+        {% elif obj.status %}<button class="btn btn-xs btn-success"><i class="fa fa-check"></i></button>
+        {% else %}<button class="btn btn-xs btn-danger"><i class="fa fa-warning"></i></button>{% endif %}
+    </td>
+    <td class="schedule-message">
+        {{ obj.message }}
+    </td>
+    <td class="schedule-start">
+        {{ obj.celery_start }}
+    </td>
+    <td class="schedule-end">
+        {% if obj.celery_end %}{{ obj.celery_end }}
+        {% elif obj.celery_start %}{% trans 'running…' %}
+        {% endif %}
+    </td>
+    <td class="schedule-info">
+        {% if obj.is_selected %}
+            <button class="btn btn-sm btn-info" onclick="return $.df.call('autoplanner.schedule.info', {organization_pk: {{ organization.id|my_simple_str }}});">&nbsp;<i class="fa fa-info"></i>&nbsp;</button>
+        {% elif obj.status %}
+            <button class="btn btn-sm btn-success" onclick="return $.df.call('autoplanner.schedule.apply', {organization_pk: {{ organization.id|my_simple_str }}, schedule_pk: {{ obj.id|my_simple_str }} });"> <i class="fa fa-recycle"></i></button>
+        {% endif %}
+    </td>
+    <td class="schedule-remove">
+        {% if obj.status is not None %}
+        <button class="btn btn-sm btn-danger" onclick="return $.df.call('autoplanner.schedule.remove', {organization_pk: {{ organization.id|my_simple_str }}, schedule_pk: {{ obj.id|my_simple_str }} });"> <i class="fa fa-minus"></i></button>
+        {% endif %}
+    </td>
+</tr>

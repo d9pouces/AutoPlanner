@@ -1,0 +1,22 @@
+{% load i18n bootstrap3 %}
+<p class="well">{% blocktrans %}You must define some resources to perform the existing tasks.
+    A single resource can perform simultaneous tasks as soon they belong to different categories.
+{% endblocktrans %}
+</p>
+
+<table class="table table-striped" id="resource-table">
+    <tr>
+        <th>&nbsp;</th>
+        <th>{% trans 'Name' %}</th>
+        <th>{% trans 'Arrival time?' %}</th>
+        <th>{% trans 'Leaving time?' %}</th>
+        <th>&nbsp;</th>
+        <th>&nbsp;</th>
+    </tr>
+    {% for obj in agents %}
+    {% include 'autoplanner/include/agent.html' %}
+    {% endfor %}
+    {% with obj=new_agent %}
+    {% include 'autoplanner/include/agent.html' %}
+    {% endwith %}
+</table>

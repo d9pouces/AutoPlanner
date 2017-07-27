@@ -1,0 +1,35 @@
+{% load i18n djangofloor bootstrap3 autoplanner %}
+<tr id="row_agent_{{ obj.id|my_simple_str }}"><form role="form" {% if obj.id is None %}onsubmit="$('#check_agent_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_agent', {organization_pk: {{ organization.id|my_simple_str }}, value: $(this).serializeArray()})"{% endif %}>
+    <td style="width: 20px;">
+        <i class="fa" id="check_agent_{{ obj.id|my_simple_str }}"></i>
+    </td>
+    <td>
+        <input type="text" class="form-control" id="id_name_{{ obj.id|my_simple_str }}" name="name" {% if obj.id %}onchange="agent_u('set_agent_name', {{ obj.id|my_simple_str }}, this);"{% endif %} value="{{ obj.name }}">
+    </td>
+    <td>{% if obj.id %}<table class="datetime">
+<tr>  <td>{% trans 'Date' %}&nbsp;: <input type="text" name="start_time_0" value="{{ obj.start_time|input_date }}" class="form-control vDateField" size="10" onchange="agent_u('set_agent_start_date', {{ obj.id|my_simple_str }}, this);" onfocus="agent_u('set_agent_start_date', {{ obj.id|my_simple_str }}, this);"></td>
+  <td>{% trans 'Time' %}&nbsp;: <input type="text" name="start_time_1" value="{{ obj.start_time|input_time }}" class="form-control vTimeField" size="8" onchange="agent_u('set_agent_start_time', {{ obj.id|my_simple_str }}, this);" onfocus="agent_u('set_agent_start_time', {{ obj.id|my_simple_str }}, this);"></td>
+</tr></table>{% endif %}</td>
+    <td>{% if obj.id %}<table class="datetime">
+<tr>  <td>{% trans 'Date' %}&nbsp;: <input type="text" name="end_time_0" value="{{ obj.end_time|input_date }}" class="form-control vDateField" size="10" onchange="agent_u('set_agent_end_date', {{ obj.id|my_simple_str }}, this);" onfocus="agent_u('set_agent_end_date', {{ obj.id|my_simple_str }}, this);"></td>
+  <td>{% trans 'Time' %}&nbsp;: <input type="text" name="end_time_1" value="{{ obj.end_time|input_time }}" class="form-control vTimeField" size="8" onchange="agent_u('set_agent_end_time', {{ obj.id|my_simple_str }}, this);" onfocus="agent_u('set_agent_end_time', {{ obj.id|my_simple_str }}, this);"></td>
+</tr></table>
+    {% endif %}</td>
+    <td>{% if obj.id %}
+    <button class="btn btn-sm btn-info"
+            onclick="return agent_u('show_agent_infos', {{ obj.id|my_simple_str }});">
+        <i class="fa fa-plus-circle"></i>
+    </button>{% else %}&nbsp;{%endif %}
+    </td>
+    <td>
+        {% if obj.id %}<button class="btn btn-sm btn-danger" onclick="$('#check_agent_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.remove_agent', {organization_pk: {{ organization.id|my_simple_str }}, agent_pk: {{ obj.id|my_simple_str }} })"><i class="fa fa-minus"></i></button>
+        <script type="application/javascript">DateTimeShortcutsReinit('#row_agent_{{ obj.id|my_simple_str }}');</script>
+        {% else %}<button class="btn btn-sm btn-success"
+                          onclick="$('#check_agent_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_agent', {organization_pk: {{ organization.id|my_simple_str }}, value: $('#row_agent_{{ obj.id|my_simple_str }} form').serializeArray()})">
+        <i class="fa fa-plus"></i></button>
+        {% endif %}
+
+    </td>
+</form>
+</tr>
+

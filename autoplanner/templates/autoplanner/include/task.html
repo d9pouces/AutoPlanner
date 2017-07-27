@@ -1,0 +1,77 @@
+{% load i18n djangofloor bootstrap3 autoplanner %}
+<tr id="row_task_{{ obj.id|my_simple_str }}">
+    <form role="form" {% if obj.id is None %}onsubmit="task_u('add_task', {{ obj.id|my_simple_str }}, this);" {% endif %}>
+        <td style="width: 20px;">
+            {% if obj.id %}<input type="checkbox" name="selected" value="{{ obj.id|my_simple_str }}">{% endif %}<br>
+            <i class="fa" id="check_task_{{ obj.id|my_simple_str }}"></i></td>
+        <td>
+            <input type="text" class="form-control" name="name"
+                   {% if obj.id %} onchange="task_u('set_task_name', {{ obj.id|my_simple_str }}, this);" {% endif %} value="{{ obj.name }}">
+        </td>
+        <td><p class="datetime">
+            {% trans 'Date' %}&nbsp;: <input type="text" name="start_time_0" value="{{ obj.start_time|input_date }}"
+                                             class="form-control vDateField" size="10"
+                                             {% if obj.id %}onchange="task_u('set_task_start_date', {{ obj.id|my_simple_str }}, this);"
+                                             onfocus="task_u('set_task_start_date', {{ obj.id|my_simple_str }}, this);"{% endif %}>
+            <br>
+            {% trans 'Time' %}&nbsp;: <input type="text" name="start_time_1" value="{{ obj.start_time|input_time }}"
+                                             class="form-control vTimeField" size="8"
+                                             {% if obj.id %}onchange="task_u('set_task_start_time', {{ obj.id|my_simple_str }}, this);"
+                                             onfocus="task_u('set_task_start_time', {{ obj.id|my_simple_str }}, this);"{% endif %}>
+        </p>
+        </td>
+        <td><p class="datetime">
+            {% trans 'Date' %}&nbsp;: <input type="text" name="end_time_0" value="{{ obj.end_time|input_date }}"
+                                             class="form-control vDateField" size="10"
+                                             {% if obj.id %}onchange="task_u('set_task_end_date', {{ obj.id|my_simple_str }}, this);"
+                                             onfocus="task_u('set_task_end_date', {{ obj.id|my_simple_str }}, this);"{% endif %}>
+            <br>
+            {% trans 'Time' %}&nbsp;: <input type="text" name="end_time_1" value="{{ obj.end_time|input_time }}"
+                                             class="form-control vTimeField" size="8"
+                                             {% if obj.id %}onchange="task_u('set_task_end_time', {{ obj.id|my_simple_str }}, this);"
+                                             onfocus="task_u('set_task_end_time', {{ obj.id|my_simple_str }}, this);"{% endif %}>
+        </p>
+
+        </td>
+        <td>
+            <select name="categories" class="form-control"
+                    {% if obj.id %}onchange="task_u('set_task_categories', {{ obj.id|my_simple_str }}, this);" {% endif %}
+                    multiple="multiple">
+                {% for category in categories %}
+                <option value="{{ category.id }}" {% if category.id in obj_categories %}selected="selected" {% endif %}>
+                    {{ category.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </td>
+        <td>
+            <select name="agent" class="form-control"
+                    {% if obj.id %}onchange="task_u('set_task_agent', {{ obj.id|my_simple_str }}, this);" {% endif %}>
+                <option value="" {% if not obj.fixed or obj.agent_id is None %}selected="selected" {% endif %}>
+                    ({% trans 'not assigned' %})
+                </option>
+                {% for agent in agents %}
+                <option value="{{ agent.id }}" {% if obj.fixed and obj.agent_id == agent.id %}selected="selected" {% endif %}>{{ agent.name }}</option>
+                {% endfor %}
+            </select>
+            <small class="agent">{% if not obj.fixed and obj.agent %}{% with name=obj.agent.name %}{% blocktrans %}Proposed to {{ name }}{% endblocktrans %}{% endwith %}{% endif %}</small>
+        </td>
+        <td>
+            {% if obj.id %}
+            <button class="btn btn-sm btn-info" onclick="return task_u('task_multiply', {{ obj.id|my_simple_str }});"> <i class="fa fa-times-circle"></i></button>
+            {% endif %}
+        </td>
+        <td>
+            {% if obj.id %}
+            <button class="btn btn-sm btn-danger" onclick="return task_u('remove_task', {{ obj.id|my_simple_str }});"> <i class="fa fa-minus"></i></button>
+            {% else %}
+            <button class="btn btn-sm btn-success"
+                    onclick="$('#check_task_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_task', {organization_pk: {{ organization.id|my_simple_str }}, value: $('#row_task_{{ obj.id|my_simple_str }} form').serializeArray()})">
+                <i class="fa fa-plus"></i></button>
+            {% endif %}
+            <script type="application/javascript">
+    DateTimeShortcutsReinit('#row_task_{{ obj.id|my_simple_str }}');
+</script>
+        </td>
+    </form>
+</tr>

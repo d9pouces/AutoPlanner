@@ -1,0 +1,34 @@
+{% load i18n djangofloor bootstrap3 autoplanner %}
+<tr id="row_max_task_affectation_{{ obj.id|my_simple_str }}"><form role="form" {% if obj.id is None %}onsubmit="$('#check_max_task_affectation_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_max_task_affectation', {organization_pk: {{ organization.id|my_simple_str }}, value: $(this).serializeArray()})"{% endif %}>
+    <td style="width: 20px;">
+        <i class="fa" id="check_max_task_affectation_{{ obj.id|my_simple_str }}"></i>
+    </td>
+    <td>
+        <select name="mode" class="form-control" {% if obj.id %}onchange="$('#check_max_task_affectation_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_max_task_affectation_mode', {organization_pk: {{ organization.id|my_simple_str }}, max_task_affectation_pk: {{ obj.id|my_simple_str }}, value: $(this).serializeArray()})"{% endif %}>
+            <option value="{{ obj.MAXIMUM }}" {% if obj.mode == obj.MAXIMUM %}selected="selected"{% endif %}>{% trans 'At most' %}</option>
+            <option value="{{ obj.MINIMUM }}" {% if obj.mode == obj.MINIMUM %}selected="selected"{% endif %}>{% trans 'At least' %}</option>
+        </select>
+    </td>
+    <td><input type="number" class="form-control"
+               name="task_maximum_count"
+               {% if obj.id %}onchange="$('#check_max_task_affectation_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_max_task_affectation_task_maximum_count', {organization_pk: {{ organization.id|my_simple_str }}, max_task_affectation_pk: {{ obj.id|my_simple_str }}, value: $(this).serializeArray()})"{% endif %}
+               value="{{ obj.task_maximum_count|my_simple_str }}">
+    </td>
+    <td>
+        <select name="category" class="form-control" {% if obj.id %}onchange="$('#check_max_task_affectation_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_max_task_affectation_category', {organization_pk: {{ organization.id|my_simple_str }}, max_task_affectation_pk: {{ obj.id|my_simple_str }}, value: $(this).serializeArray()})"{% endif %}>
+            {% for category in categories %}<option value="{{ category.id }}" {% if obj.category_id == category.id %}selected="selected"{% endif %}>{{ category.name }}</option>{% endfor %}
+        </select>
+    </td>
+    <td>
+        <input type="text" class="form-control" name="range_time_slice"
+               {% if obj.id %}onchange="$('#check_max_task_affectation_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_max_task_affectation_range_time_slice', {organization_pk: {{ organization.id|my_simple_str }}, max_task_affectation_pk: {{ obj.id|my_simple_str }}, value: $(this).serializeArray()})"{% endif %}
+               value="{{ obj.range_time_slice|timedelta }}">
+    </td>
+    <td>
+        {% if obj.id %}<button class="btn btn-sm btn-danger" onclick="$('#check_max_task_affectation_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.remove_max_task_affectation', {organization_pk: {{ organization.id|my_simple_str }}, max_task_affectation_pk: {{ obj.id|my_simple_str }} })"><i class="fa fa-minus"></i></button>
+        {% else %}<button class="btn btn-sm btn-success"
+                          onclick="$('#check_max_task_affectation_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_max_task_affectation', {organization_pk: {{ organization.id|my_simple_str }}, value: $('#row_max_task_affectation_{{ obj.id|my_simple_str }} form').serializeArray()})">
+        <i class="fa fa-plus"></i></button>
+        {% endif %}
+    </td></form>
+</tr>

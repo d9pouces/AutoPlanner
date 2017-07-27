@@ -1,0 +1,25 @@
+{% load i18n djangofloor autoplanner %}
+<h1>{{ organization.name }}</h1>
+
+<form role="form">
+  <div class="form-group">
+    <label for="id_description">{% trans 'Description' %}</label>
+    <span class="pull-right"><i class="fa" id="check_description"></i></span>
+    <textarea class="form-control" id="id_description" name="description" onchange="$('#check_description').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_description', {organization_pk: {{ organization.id|my_simple_str }}, value: $(this).serializeArray()})">{{ organization.description }}</textarea>
+  </div>
+  <div class="form-group">
+    <label for="id_access_token">{% trans 'Access token' %}</label>
+    <button class="btn btn-info btn-xs" onclick="$('#check_access_token').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.new_access_token', {organization_pk: {{ organization.id|my_simple_str }} })">{% trans 'New token' %}</button>
+    <span class="pull-right">
+    <i class="fa" id="check_access_token"></i>
+    </span>
+    <input type="text" class="form-control" id="id_access_token" name="access_token" onchange="$('#check_access_token').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_access_token', {organization_pk: {{ organization.id|my_simple_str }}, value: $(this).serializeArray()})" value="{{ organization.access_token }}">
+  </div>
+  <div class="form-group">
+    <label for="id_max_compute_time">{% trans 'Max computation time for finding schedules, in seconds' %}</label>
+    <span class="pull-right">
+    <i class="fa" id="check_max_compute_time"></i>
+    </span>
+    <input type="number" class="form-control" id="id_max_compute_time" name="max_compute_time" onchange="$('#check_max_compute_time').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_max_compute_time', {organization_pk: {{ organization.id|my_simple_str }}, value: $(this).serializeArray()})" value="{% if organization.max_compute_time %}{{ organization.max_compute_time|my_simple_str }}{% endif %}">
+  </div>
+</form>

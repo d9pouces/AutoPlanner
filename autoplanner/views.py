@@ -1,6 +1,7 @@
 import datetime
 import json
 from django.conf import settings
+from django.template.response import TemplateResponse
 from django.utils.formats import date_format
 from django.utils.formats import time_format
 from django.views.decorators.cache import never_cache
@@ -12,17 +13,18 @@ from django.contrib.admin.options import TO_FIELD_VAR
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.contrib import messages
 from django.contrib.admin.utils import quote
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http.response import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.utils.translation import ugettext_lazy as _
 from djangofloor.celery import app
+from djangofloor.tasks import set_websocket_topics
 from icalendar import Calendar, Event
 import markdown
 
 from autoplanner.admin import OrganizationAdmin
-from autoplanner.forms import MultiplyTaskForm
+from autoplanner.forms import MultiplyTaskForm, OrganizationAddForm
 from autoplanner.models import Organization, Task, Category, Agent, API_KEY_VARIABLE, ScheduleRun
 from autoplanner.schedule import Scheduler
 from autoplanner.tasks import compute_schedule, kill_schedule, apply_schedule
@@ -285,3 +287,27 @@ def generate_ics(request, organization_pk, agent_pk=None, category_pk=None, titl
         event['uid'] = task.start_time.strftime('%Y%m%dT%H%M%S-') + str(task.pk)
         cal.add_component(event)
     return HttpResponse(cal.to_ical(), content_type='text/calendar')
+
+
+def index(request):
+    query = Organization.query(request).order_by('name')
+    set_websocket_topics(request)
+    if request.method == 'POST' and request.user.is_authenticated:
+        form = OrganizationAddForm(request.POST)
+        if form.is_valid():
+            obj = Organization(name=form.cleaned_data['name'], max_compute_time=1800)
+            obj.save()
+            obj.admins = [request.user]
+            messages.success(request, _('Organization successfully created.'))
+            return HttpResponseRedirect(reverse('index'))
+    else:
+        form = OrganizationAddForm()
+    template_values = {'organizations': query, 'form': form}
+    return TemplateResponse(request, 'autoplanner/organizations.html', context=template_values)
+
+
+def organization_index(request, organization_pk):
+    obj = get_object_or_404(Organization.query(request), pk=organization_pk)
+    set_websocket_topics(request, obj)
+    template_values = {'organization': obj}
+    return TemplateResponse(request, 'autoplanner/organization_index.html', context=template_values)

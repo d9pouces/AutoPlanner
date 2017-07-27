@@ -1,0 +1,42 @@
+{% load i18n %}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
+    </button>
+    <h4 class="modal-title">{{ agent.name}}</h4>
+</div>
+
+<div class="modal-body">
+    <p class="well">
+        {% blocktrans %}Here you can modify the behaviour of the scheduler when distributing work to this resource.
+        <br>
+        You can consider that is fair to promote some resources, for example by giving it half the work
+        compared to other resources, but only for a given type of tasks.
+        {% endblocktrans %}
+    </p>
+    <table class="table table-stripped" id="agent_infos_{{ agent.id }}-table">
+        <tr>
+            <th>&nbsp;</th>
+            <th>{% trans 'Category' %}</th>
+            <th>{% trans 'Affinity of the resource for the category' %}</th>
+            <th>{% trans 'Offset' %}
+                <small>{% trans 'Number of time units already done' %}</small>
+            </th>
+            <th>{% trans 'Balancing multiplier' %}
+                <small>{% trans 'If a task of this category performed by this resource counts twice, set this number to 2.0.' %}</small>
+            </th>
+            <th>&nbsp;</th>
+        </tr>
+        {% for obj in agent_category_preferences %}
+        {% include 'autoplanner/include/agent_category_preference.html' %}
+        {% endfor %}
+        {% if new_agent_category_preference %}
+        {% with obj=new_agent_category_preference %}
+        {% include 'autoplanner/include/agent_category_preference.html' %}
+        {% endwith %}
+        {% endif %}
+    </table>
+
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-default" data-dismiss="modal">{% trans 'Close' %}</button>
+</div>

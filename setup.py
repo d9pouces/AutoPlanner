@@ -14,9 +14,9 @@ for line in codecs.open(os.path.join('autoplanner', '__init__.py'), 'r', encodin
 with codecs.open(os.path.join(os.path.dirname(__file__), 'README.md'), encoding='utf-8') as fd:
     long_description = fd.read()
 
-entry_points = {'console_scripts': ['autoplanner-manage = djangofloor.scripts:manage',
+entry_points = {'console_scripts': ['autoplanner-manage = djangofloor.scripts:django',
                                     'autoplanner-celery = djangofloor.scripts:celery',
-                                    'autoplanner-gunicorn = djangofloor.scripts:gunicorn']}
+                                    'autoplanner-web = djangofloor.scripts:aiohttp']}
 
 setup(
     name='autoplanner',
@@ -32,7 +32,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     test_suite='autoplanner.tests',
-    install_requires=['djangofloor', 'icalendar', 'markdown', 'django_smart_selects', ],
+    install_requires=['djangofloor', 'icalendar', 'markdown', ],
     setup_requires=[],
     classifiers=['Development Status :: 3 - Alpha', 'Operating System :: MacOS :: MacOS X',
                  'Operating System :: Microsoft :: Windows', 'Operating System :: POSIX :: BSD',

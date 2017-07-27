@@ -1,0 +1,63 @@
+{% load i18n bootstrap3 autoplanner %}
+<div class="row">
+    <div class="col-md-10 col-lg-10 col-sm-12">
+        <p class="well">{% blocktrans %}Finally, you need to define your tasks.
+
+            The schedule will determine how to dispatch them to resources will respecting your constraints, if such a
+            solution exists.
+            <br>If you assign a task to a specific resource, then the scheduler will not change its assignment.
+            The scheduler will only propose assignments for all tasks.{% endblocktrans %}
+        </p>
+        <small><span class="datetimeshortcuts"><a href="#" onclick="return callTask(undefined, undefined, undefined, undefined, 'autoplanner.forms.task_import');">{% trans 'Import multiple tasks' %}</a> </span> </small>
+
+        <table class="table table-striped" id="tasks_table">
+            <tr>
+                <th><small><span class="datetimeshortcuts"><a href="#" onclick="return InverseSelection();">{% trans 'Select' %}</a></span></small></th>
+                <th>{% trans 'The task…' %}</th>
+                <th>{% trans 'begins at…' %}</th>
+                <th>{% trans 'and ends at…' %}</th>
+                <th>{% trans 'belongs to…' %}</th>
+                <th>{% trans 'and is assigned to:' %}</th>
+                <th colspan="2">
+                    <small><span class="datetimeshortcuts"><a href="#" onclick="return $.df.call('autoplanner.forms.task_multiple_update_show', {organization_pk: {{ organization.id|my_simple_str }} });">{% trans 'Update selection' %}</a> </span> </small>
+                </th>
+            </tr>
+            <tr>
+                <td colspan="7">
+                    <input class="form-control" value="{{ pattern }}" onchange="return callTask(undefined, undefined, undefined, this.value);" onsubmit="return callTask(undefined, undefined, undefined, this.value);" placeholder="{% trans 'Filter…' %}">
+                </td>
+            </tr>
+            {% with obj=new_task obj_categories=empty_set %}
+            {% include 'autoplanner/include/task.html' %}
+            {% endwith %}
+        </table>
+    </div>
+    <div class="col-md-2 col-lg-2 col-sm-12">
+        <ul class="list-group">
+            <li class="list-group-item active">{% trans 'By category' %}</li>
+            <li id="by_category_None" class="filter-tasks list-group-item {% if category_id is None %}active{% endif %}"><a href="#" onclick="return callTask(undefined, undefined, null);">{% trans 'all categories' %}</a></li>
+            {% for x in categories %}
+            <li id="by_category_{{ x.id }}" class="filter-tasks list-group-item {% if x.id == category_id %}active{% endif %}"><a href="#" onclick="return callTask(undefined, undefined, {{ x.id }});">{{ x.name }}</a></li>
+            {% endfor %}
+        </ul>
+        <ul class="list-group">
+            <li class="list-group-item active">{% trans 'By agent' %}</li>
+            <li id="by_agent_None" class="filter-tasks list-group-item {% if agent_id is None %}active{% endif %}"><a href="#" onclick="return callTask(undefined, null);">{% trans 'all agents' %}</a></li>
+            {% for x in agents %}
+            <li id="by_agent_{{ x.id }}" class="filter-tasks list-group-item {% if x.id == agent_id %}active{% endif %}"><a href="#" onclick="callTask(undefined, {{ x.id }});">{{ x.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+<script type="application/javascript">
+function callTask(order_by, agent_id, category_id, pattern, signal, kwargs) {
+    if (kwargs === undefined) kwargs = {}; 
+    kwargs.organization_pk = {{ organization.id|my_simple_str }};
+    kwargs.order_by = order_by === undefined ? {{ order_by|js_value }} : order_by;
+    kwargs.pattern = pattern === undefined ? {{ pattern|js_value }} : pattern;
+    kwargs.agent_id = agent_id === undefined ? {{ agent_id|js_value }} : agent_id;
+    kwargs.category_id = category_id === undefined ? {{ category_id|js_value }} : category_id;
+    if (signal === undefined) signal = 'autoplanner.forms.filter_tasks';
+    return $.df.call(signal, kwargs);
+}
+</script>

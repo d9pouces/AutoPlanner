@@ -1,0 +1,4 @@
+{% load i18n autoplanner %}{% if organization.celery_task_id %}<i class="fa fa-spin fa-spinner"></i> {% trans 'Computation in progress…' %} <button class="btn btn-sm btn-danger" onclick="return $.df.call('autoplanner.schedule.kill', {organization_pk: {{ organization.id|my_simple_str }}, celery_task_id: '{{ organization.celery_task_id }}' });">{% trans 'Interrupt' %}</button>
+{% elif organization.celery_end %}<i class="fa fa-check"></i> {% trans 'Computation finished' %} <button class="btn btn-sm btn-info" onclick="return $.df.call('autoplanner.schedule.launch', {organization_pk: {{ organization.id|my_simple_str }} });">{% trans 'Again' %}</button>
+{% else %}{% trans 'No computation yet.' %} <button class="btn btn-sm btn-info" onclick="return $.df.call('autoplanner.schedule.launch', {organization_pk: {{ organization.id|my_simple_str }} });">{% trans 'Compute' %}</button>
+{% endif %}
