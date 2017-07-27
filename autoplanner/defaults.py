@@ -1,11 +1,3 @@
-from djangofloor.conf.config_values import ExpandIterable
-
-__author__ = 'Matthieu Gallet'
-
-########################################################################################################################
-# celery
-########################################################################################################################
-
 DF_JS = ['admin/js/core.js', 'admin/js/calendar.js', 'admin/js/admin/DateTimeShortcuts.js',
          'autoplanner/js/autoplanner.js']
 DF_CSS = ['autoplanner/css/autoplanner.css']

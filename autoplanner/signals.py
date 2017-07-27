@@ -1,5 +1,3 @@
-from djangofloor.decorators import connect, SerializedForm
-# -*- coding: utf-8 -*-
 import calendar
 import csv
 import datetime
@@ -1197,6 +1195,7 @@ def calendar_week(window_info, organization_pk: int, year: int=None, month: int=
     month_str = {1: _('January'), 2: _('February'), 3: _('March'), 4: _('April'),
                  5: _('May'), 6: _('June'), 7: _('July'), 8: _('August'),
                  9: _('September'), 10: _('October'), 11: _('November'), 12: _('December')}[start.month]
+    # noinspection PyUnusedLocal
     task_matrix = [[(x, []) for x in range(7)] for y in range(24)]
     query = Task.objects.filter(organization=organization).exclude(end_time__lt=start)\
         .exclude(start_time__gt=end).select_related('agent').prefetch_related('categories')
