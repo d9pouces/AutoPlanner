@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from django import template
 from django.forms import TimeInput, DateInput
 from django.utils import formats

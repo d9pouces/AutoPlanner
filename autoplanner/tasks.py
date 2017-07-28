@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import celery
 import json
 import os
