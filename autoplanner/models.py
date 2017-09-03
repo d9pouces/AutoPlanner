@@ -37,7 +37,7 @@ class Organization(models.Model):
     name = models.CharField(_('Name'), db_index=True, max_length=500)
     message = models.CharField(_('Message'), blank=True, max_length=500, default='')
     description = models.TextField(_('Description'), default='', blank=True)
-    celery_task_id = models.CharField(_('Celery task id'), db_index=True, max_length=20, blank=True, null=True,
+    celery_task_id = models.CharField(_('Celery task id'), db_index=True, max_length=60, blank=True, null=True,
                                       default=None)
     celery_start = models.DateTimeField(_('Celery start'), null=True, blank=True, default=None)
     celery_end = models.DateTimeField(_('Celery end'), null=True, blank=True, default=None)
@@ -148,11 +148,11 @@ class Category(OrganizationObject):
 
     @property
     def balancing_tolerance_as_timedelta_2(self):
-        return datetime.timedelta(seconds=(self.balancing_tolerance or 0) * 2.)
+        return datetime.timedelta(seconds=(self.balancing_tolerance or 0))
 
     @property
     def balancing_tolerance_2(self):
-        return (self.balancing_tolerance or 0) * 2.
+        return self.balancing_tolerance or 0
 
 
 class MaxAffectation(OrganizationObject):

@@ -115,7 +115,7 @@ def change_tab_schedules(window_info, organization):
     render_to_client(window_info, 'autoplanner/tabs/schedules.html', context, '#schedules')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_description')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_description', queue='fast')
 def set_description(window_info, organization_pk: int, value: SerializedForm(OrganizationDescriptionForm)):
     if value and value.is_valid():
         description = value.cleaned_data['description']
@@ -123,7 +123,7 @@ def set_description(window_info, organization_pk: int, value: SerializedForm(Org
         add_attribute(window_info, '#check_description', 'class', 'fa fa-check')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_access_token')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_access_token', queue='fast')
 def set_access_token(window_info, organization_pk: int, value: SerializedForm(OrganizationAccessTokenForm)):
     if value and value.is_valid():
         access_token = value.cleaned_data['access_token']
@@ -131,7 +131,7 @@ def set_access_token(window_info, organization_pk: int, value: SerializedForm(Or
         add_attribute(window_info, '#check_access_token', 'class', 'fa fa-check')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.new_access_token')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.new_access_token', queue='fast')
 def new_access_token(window_info, organization_pk: int):
     access_token = default_token()
     Organization.query(window_info).filter(pk=organization_pk).update(access_token=access_token)
@@ -139,7 +139,7 @@ def new_access_token(window_info, organization_pk: int):
     add_attribute(window_info, '#id_access_token', 'value', access_token)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_compute_time')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_compute_time', queue='fast')
 def set_max_compute_time(window_info, organization_pk: int, value: SerializedForm(OrganizationMaxComputeTimeForm)):
     if value and value.is_valid():
         max_compute_time = value.cleaned_data['max_compute_time']
@@ -149,7 +149,7 @@ def set_max_compute_time(window_info, organization_pk: int, value: SerializedFor
         add_attribute(window_info, '#check_max_compute_time', 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_name')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_name', queue='fast')
 def set_category_name(window_info, organization_pk: int, category_pk: int, value: SerializedForm(CategoryNameForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
@@ -160,7 +160,7 @@ def set_category_name(window_info, organization_pk: int, category_pk: int, value
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_balancing_mode')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_balancing_mode', queue='fast')
 def set_category_balancing_mode(window_info, organization_pk: int,
                                 value: SerializedForm(CategoryBalancingModeForm), category_pk: int = None):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
@@ -189,33 +189,33 @@ def set_category_balancing_mode(window_info, organization_pk: int,
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_balancing_tolerance_time')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_balancing_tolerance_time', queue='fast')
 def set_category_balancing_tolerance_time(window_info, organization_pk: int, category_pk: int,
                                           value: SerializedForm(CategoryBalancingToleranceTimeForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
         balancing_tolerance = value.cleaned_data['balancing_tolerance']
         Category.objects.filter(organization__id=organization_pk, pk=category_pk).update(
-            balancing_tolerance=balancing_tolerance.total_seconds() / 2.0)
+            balancing_tolerance=balancing_tolerance.total_seconds())
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-check')
     elif value:
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_balancing_tolerance_number')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_balancing_tolerance_number', queue='fast')
 def set_category_balancing_tolerance_number(window_info, organization_pk: int, category_pk: int,
                                             value: SerializedForm(CategoryBalancingToleranceNumberForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
         balancing_tolerance = value.cleaned_data['balancing_tolerance']
         Category.objects.filter(organization__id=organization_pk, pk=category_pk).update(
-            balancing_tolerance=balancing_tolerance / 2.0)
+            balancing_tolerance=balancing_tolerance)
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-check')
     elif value:
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_auto_affinity')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_category_auto_affinity', queue='fast')
 def set_category_auto_affinity(window_info, organization_pk: int, category_pk: int,
                                value: SerializedForm(CategoryAutoAffinityForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
@@ -228,7 +228,7 @@ def set_category_auto_affinity(window_info, organization_pk: int, category_pk: i
         add_attribute(window_info, '#check_category_%s' % category_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_category')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_category', queue='fast')
 def add_category(window_info, organization_pk: int, value: SerializedForm(CategoryAddForm)):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     can_update = organization is not None
@@ -249,7 +249,7 @@ def add_category(window_info, organization_pk: int, value: SerializedForm(Catego
     focus(window_info, '#id_name_None')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_category')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_category', queue='fast')
 def remove_category(window_info, organization_pk: int, category_pk: int):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update:
@@ -257,7 +257,7 @@ def remove_category(window_info, organization_pk: int, category_pk: int):
         remove(window_info, '#row_category_%s' % category_pk)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_name')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_name', queue='fast')
 def set_agent_name(window_info, organization_pk: int, agent_pk: int, value: SerializedForm(AgentNameForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
@@ -268,7 +268,7 @@ def set_agent_name(window_info, organization_pk: int, agent_pk: int, value: Seri
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_start_time')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_start_time', queue='fast')
 def set_agent_start_time(window_info, organization_pk: int, agent_pk: int, value: SerializedForm(AgentStartTimeForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
@@ -285,7 +285,7 @@ def set_agent_start_time(window_info, organization_pk: int, agent_pk: int, value
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_end_time')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_end_time', queue='fast')
 def set_agent_end_time(window_info, organization_pk: int, agent_pk: int, value: SerializedForm(AgentEndTimeForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
@@ -302,7 +302,7 @@ def set_agent_end_time(window_info, organization_pk: int, agent_pk: int, value: 
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_start_date')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_start_date', queue='fast')
 def set_agent_start_date(window_info, organization_pk: int, agent_pk: int, value: SerializedForm(AgentStartDateForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
@@ -320,7 +320,7 @@ def set_agent_start_date(window_info, organization_pk: int, agent_pk: int, value
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_end_date')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_end_date', queue='fast')
 def set_agent_end_date(window_info, organization_pk: int, agent_pk: int, value: SerializedForm(AgentEndDateForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     agent = Agent.objects.filter(organization__id=organization_pk, pk=agent_pk).first()
@@ -337,7 +337,7 @@ def set_agent_end_date(window_info, organization_pk: int, agent_pk: int, value: 
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_agent')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_agent', queue='fast')
 def add_agent(window_info, organization_pk: int, value: SerializedForm(AgentAddForm)):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     can_update = organization is not None
@@ -353,7 +353,7 @@ def add_agent(window_info, organization_pk: int, value: SerializedForm(AgentAddF
     focus(window_info, '#id_name_None')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_agent')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_agent', queue='fast')
 def remove_agent(window_info, organization_pk: int, agent_pk: int):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update:
@@ -362,7 +362,7 @@ def remove_agent(window_info, organization_pk: int, agent_pk: int):
         remove(window_info, '#row_agent_pref_%s' % agent_pk)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.show_agent_infos')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.show_agent_infos', queue='fast')
 def show_agent_infos(window_info, organization_pk: int, agent_pk: int):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     agent = Agent.objects.filter(organization__id=organization_pk, id=agent_pk).first()
@@ -387,7 +387,7 @@ def show_agent_infos(window_info, organization_pk: int, agent_pk: int):
         add_attribute(window_info, '#check_agent_%s' % agent_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_affinity')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_affinity', queue='fast')
 def set_agent_category_preferences_affinity(window_info, organization_pk: int, agent_category_preferences_pk: int,
                                             value: SerializedForm(AgentCategoryPreferencesAffinityForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
@@ -403,7 +403,8 @@ def set_agent_category_preferences_affinity(window_info, organization_pk: int, a
                       'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_offset')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_offset',
+        queue='fast')
 def set_agent_category_preferences_balancing_offset(window_info, organization_pk: int,
                                                     agent_category_preferences_pk: int,
                                                     value: SerializedForm(AgentCategoryPreferencesBalancingOffsetForm)):
@@ -420,7 +421,8 @@ def set_agent_category_preferences_balancing_offset(window_info, organization_pk
                       'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_offset_time')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_offset_time',
+        queue='fast')
 def set_agent_category_preferences_balancing_offset_time(
         window_info, organization_pk: int,
         agent_category_preferences_pk: int,
@@ -438,7 +440,8 @@ def set_agent_category_preferences_balancing_offset_time(
                       'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_count')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_agent_category_preferences_balancing_count',
+        queue='fast')
 def set_agent_category_preferences_balancing_count(window_info, organization_pk: int,
                                                    agent_category_preferences_pk: int,
                                                    value: SerializedForm(AgentCategoryPreferencesBalancingCountForm)):
@@ -455,7 +458,7 @@ def set_agent_category_preferences_balancing_count(window_info, organization_pk:
                       'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_agent_category_preferences')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_agent_category_preferences', queue='fast')
 def add_agent_category_preferences(window_info, organization_pk: int, agent_pk: int,
                                    value: SerializedForm(AgentCategoryPreferencesAddForm)):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
@@ -486,7 +489,7 @@ def add_agent_category_preferences(window_info, organization_pk: int, agent_pk: 
     focus(window_info, '#id_name_None')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_agent_category_preferences')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_agent_category_preferences', queue='fast')
 def remove_agent_category_preferences(window_info, organization_pk: int, agent_category_preferences_pk: int,
                                       agent_pk: int):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
@@ -497,7 +500,7 @@ def remove_agent_category_preferences(window_info, organization_pk: int, agent_c
         show_agent_infos(window_info, organization_pk=organization_pk, agent_pk=agent_pk)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_task_affectation_mode')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_task_affectation_mode', queue='fast')
 def set_max_task_affectation_mode(window_info, organization_pk: int, max_task_affectation_pk: int,
                                   value: SerializedForm(MaxTaskAffectationModeForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
@@ -513,7 +516,7 @@ def set_max_task_affectation_mode(window_info, organization_pk: int, max_task_af
                       'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_task_affectation_category')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_task_affectation_category', queue='fast')
 def set_max_task_affectation_mode(window_info, organization_pk: int, max_task_affectation_pk: int,
                                   value: SerializedForm(MaxTaskAffectationCategoryForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
@@ -529,7 +532,8 @@ def set_max_task_affectation_mode(window_info, organization_pk: int, max_task_af
                       'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_task_affectation_range_time_slice')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_task_affectation_range_time_slice',
+        queue='fast')
 def set_max_task_affectation_range_time_slice(window_info, organization_pk: int, max_task_affectation_pk: int,
                                               value: SerializedForm(MaxTaskAffectationRangeTimeSliceForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
@@ -546,7 +550,8 @@ def set_max_task_affectation_range_time_slice(window_info, organization_pk: int,
                       'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_task_affectation_task_maximum_count')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_task_affectation_task_maximum_count',
+        queue='fast')
 def set_max_task_affectation_task_maximum_count(window_info, organization_pk: int, max_task_affectation_pk: int,
                                                 value: SerializedForm(MaxTaskAffectationTaskMaximumCountForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
@@ -562,7 +567,7 @@ def set_max_task_affectation_task_maximum_count(window_info, organization_pk: in
                       'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_max_task_affectation')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_max_task_affectation', queue='fast')
 def add_max_task_affectation(window_info, organization_pk: int, value: SerializedForm(MaxTaskAffectationAddForm)):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if organization and value and value.is_valid():
@@ -591,7 +596,7 @@ def add_max_task_affectation(window_info, organization_pk: int, value: Serialize
     focus(window_info, '#id_name_None')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_max_task_affectation')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_max_task_affectation', queue='fast')
 def remove_max_task_affectation(window_info, organization_pk: int, max_task_affectation_pk: int):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update:
@@ -600,7 +605,7 @@ def remove_max_task_affectation(window_info, organization_pk: int, max_task_affe
         remove(window_info, '#row_max_task_affectation_%s' % max_task_affectation_pk)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_time_affectation_mode')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_time_affectation_mode', queue='fast')
 def set_max_time_affectation_mode(window_info, organization_pk: int, max_time_affectation_pk: int,
                                   value: SerializedForm(MaxTaskAffectationModeForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
@@ -616,7 +621,7 @@ def set_max_time_affectation_mode(window_info, organization_pk: int, max_time_af
                       'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_time_affectation_category')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_time_affectation_category', queue='fast')
 def set_max_time_affectation_mode(window_info, organization_pk: int, max_time_affectation_pk: int,
                                   value: SerializedForm(MaxTaskAffectationCategoryForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
@@ -632,7 +637,8 @@ def set_max_time_affectation_mode(window_info, organization_pk: int, max_time_af
                       'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_time_affectation_range_time_slice')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_time_affectation_range_time_slice',
+        queue='fast')
 def set_max_time_affectation_range_time_slice(window_info, organization_pk: int, max_time_affectation_pk: int,
                                               value: SerializedForm(MaxTaskAffectationRangeTimeSliceForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
@@ -649,7 +655,8 @@ def set_max_time_affectation_range_time_slice(window_info, organization_pk: int,
                       'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_time_affectation_task_maximum_time')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_max_time_affectation_task_maximum_time',
+        queue='fast')
 def set_max_time_affectation_task_maximum_time(window_info, organization_pk: int, max_time_affectation_pk: int,
                                                value: SerializedForm(MaxTimeAffectationTaskMaximumTimeForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
@@ -666,7 +673,7 @@ def set_max_time_affectation_task_maximum_time(window_info, organization_pk: int
                       'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_max_time_affectation')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_max_time_affectation', queue='fast')
 def add_max_time_affectation(window_info, organization_pk: int, value: SerializedForm(MaxTimeAffectationAddForm)):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if organization and value and value.is_valid():
@@ -697,7 +704,7 @@ def add_max_time_affectation(window_info, organization_pk: int, value: Serialize
     focus(window_info, '#id_name_None')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_max_time_affectation')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_max_time_affectation', queue='fast')
 def remove_max_time_affectation(window_info, organization_pk: int, max_time_affectation_pk: int):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update:
@@ -706,7 +713,7 @@ def remove_max_time_affectation(window_info, organization_pk: int, max_time_affe
         remove(window_info, '#row_max_time_affectation_%s' % max_time_affectation_pk)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_name')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_name', queue='fast')
 def set_task_name(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskNameForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update and value and value.is_valid():
@@ -717,7 +724,7 @@ def set_task_name(window_info, organization_pk: int, task_pk: int, value: Serial
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_start_time')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_start_time', queue='fast')
 def set_task_start_time(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskStartTimeForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).first()
@@ -731,7 +738,7 @@ def set_task_start_time(window_info, organization_pk: int, task_pk: int, value: 
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_end_time')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_end_time', queue='fast')
 def set_task_end_time(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskEndTimeForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).first()
@@ -744,7 +751,7 @@ def set_task_end_time(window_info, organization_pk: int, task_pk: int, value: Se
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_start_date')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_start_date', queue='fast')
 def set_task_start_date(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskStartDateForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).first()
@@ -757,7 +764,7 @@ def set_task_start_date(window_info, organization_pk: int, task_pk: int, value: 
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_end_date')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_end_date', queue='fast')
 def set_task_end_date(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskEndDateForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).first()
@@ -770,7 +777,7 @@ def set_task_end_date(window_info, organization_pk: int, task_pk: int, value: Se
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_agent')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_agent', queue='fast')
 def set_task_agent(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskAgentForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).select_related('agent').first()
@@ -791,7 +798,7 @@ def set_task_agent(window_info, organization_pk: int, task_pk: int, value: Seria
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_categories')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.set_task_categories', queue='fast')
 def set_task_categories(window_info, organization_pk: int, task_pk: int, value: SerializedForm(TaskCategoriesForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).select_related('agent').first()
@@ -802,7 +809,7 @@ def set_task_categories(window_info, organization_pk: int, task_pk: int, value: 
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_task')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.add_task', queue='fast')
 def add_task(window_info, organization_pk: int, value: SerializedForm(TaskAddForm)):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if organization and value and value.is_valid():
@@ -828,7 +835,7 @@ def add_task(window_info, organization_pk: int, value: SerializedForm(TaskAddFor
     focus(window_info, '#id_name_None')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.filter_tasks')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.filter_tasks', queue='fast')
 def filter_tasks(window_info, organization_pk: int, order_by: Choice(Task.orders) = 'start_time',
                  agent_id: int_or_none = None, category_id: int_or_none = None, pattern: str = ''):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
@@ -837,7 +844,7 @@ def filter_tasks(window_info, organization_pk: int, order_by: Choice(Task.orders
                          pattern=pattern)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiply')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiply', queue='celery')
 def task_multiply(window_info, organization_pk: int, task_pk: int, form: SerializedForm(TaskMultiplyForm) = None):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     obj = Task.objects.filter(organization__id=organization_pk, pk=task_pk).first()
@@ -908,7 +915,7 @@ def task_multiply(window_info, organization_pk: int, task_pk: int, form: Seriali
     modal_show(window_info, content_str)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_task')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.remove_task', queue='fast')
 def remove_task(window_info, organization_pk: int, task_pk: int):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     if can_update:
@@ -916,7 +923,7 @@ def remove_task(window_info, organization_pk: int, task_pk: int):
         remove(window_info, '#row_task_%s' % task_pk)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiple_update_show')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiple_update_show', queue='fast')
 def task_multiple_update_show(window_info, organization_pk: int):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if not organization:
@@ -929,7 +936,7 @@ def task_multiple_update_show(window_info, organization_pk: int):
     modal_show(window_info, content_str)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiple_update')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiple_update', queue='fast')
 def task_multiple_update(window_info, organization_pk: int, form: SerializedForm(TaskMultipleUpdateForm) = None,
                          order_by: Choice(Task.orders) = 'start_time', agent_id: int_or_none = None,
                          category_id: int_or_none = None, pattern: str = ''):
@@ -962,7 +969,7 @@ def task_multiple_update(window_info, organization_pk: int, form: SerializedForm
     modal_hide(window_info)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiple_remove')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_multiple_remove', queue='fast')
 def task_multiple_remove(window_info, organization_pk: int, form: SerializedForm(TaskMultipleRemoveForm) = None,
                          order_by: Choice(Task.orders) = 'start_time', agent_id: int_or_none = None,
                          category_id: int_or_none = None, pattern: str = ''):
@@ -979,7 +986,7 @@ def task_multiple_remove(window_info, organization_pk: int, form: SerializedForm
     modal_hide(window_info)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_import')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.forms.task_import', queue='celery')
 def task_import(window_info, organization_pk: int, form: SerializedForm(TaskImportForm) = None,
                 order_by: Choice(Task.orders) = 'start_time', agent_id: int_or_none = None,
                 category_id: int_or_none = None, pattern: str = ''):
@@ -1054,7 +1061,7 @@ def task_import(window_info, organization_pk: int, form: SerializedForm(TaskImpo
     modal_show(window_info, content_str)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.launch')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.launch', queue='fast')
 def schedule_launch(window_info, organization_pk: int):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if not organization:
@@ -1062,7 +1069,7 @@ def schedule_launch(window_info, organization_pk: int):
     compute_schedule.delay(organization_pk, window_info.to_dict())
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.kill')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.kill', queue='fast')
 def schedule_kill(window_info, organization_pk: int, celery_task_id: str):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if not organization:
@@ -1070,7 +1077,7 @@ def schedule_kill(window_info, organization_pk: int, celery_task_id: str):
     kill_schedule.delay(celery_task_id, window_info.to_dict())
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.remove')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.remove', queue='fast')
 def schedule_remove(window_info, organization_pk: int, schedule_pk: int):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if organization:
@@ -1135,7 +1142,7 @@ def prepare_schedule_stats(organization):
     return context
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.calendar.month')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.calendar.month', queue='fast')
 def calendar_month(window_info, organization_pk: int, year: int=None, month: int=None):
     now = datetime.datetime.now()
     if year is None:
@@ -1180,7 +1187,7 @@ def calendar_month(window_info, organization_pk: int, year: int=None, month: int
     render_to_client(window_info, 'autoplanner/calendars/by_month.html', context, '#schedule')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.calendar.week')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.calendar.week', queue='fast')
 def calendar_week(window_info, organization_pk: int, year: int=None, month: int=None, day: int=None):
     now = datetime.datetime.now()
     try:
@@ -1217,7 +1224,7 @@ def calendar_week(window_info, organization_pk: int, year: int=None, month: int=
     render_to_client(window_info, 'autoplanner/calendars/by_week.html', context, '#schedule')
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.apply')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.apply', queue='fast')
 def schedule_apply(window_info, organization_pk: int, schedule_pk: int):
     organization = Organization.query(window_info).filter(pk=organization_pk).select_related('current_schedule').first()
     if not organization:
@@ -1247,7 +1254,7 @@ def schedule_apply(window_info, organization_pk: int, schedule_pk: int):
     replace_with(window_info, '#schedule_%s' % schedule_run.id, content_str)
 
 
-@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.info')
+@signal(is_allowed_to=is_authenticated, path='autoplanner.schedule.info', queue='fast')
 def schedule_info(window_info, organization_pk: int):
     organization = Organization.query(window_info).filter(pk=organization_pk).first()
     if not organization:

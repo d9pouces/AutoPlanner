@@ -1,6 +1,8 @@
 import re
 import subprocess
 import tempfile
+
+import itertools
 from django.conf import settings
 
 from autoplanner.models import Organization, MaxTimeTaskAffectation, Task, ScheduleRun
@@ -186,17 +188,26 @@ class Scheduler(object):
                                                 self.variable(agent_pk, task_pk)) for task_pk in cat_task_pks]
                 yield Constraint('%g + %s = %s' % (agent_preferences[0] * agent_preferences[1], ' + '.join(ag_sum),
                                                    self.category_variable(category_pk, agent_pk)))
-            ag_sum = [self.category_variable(category_pk, agent_pk) for agent_pk in cat_agent_pks]
-            yield Constraint('%s = %s' % (' + '.join(ag_sum), self.category_variable(category_pk)))
-            for agent_pk in cat_agent_pks:
-                count = len(cat_agent_pks)
+            # ag_sum = [self.category_variable(category_pk, agent_pk) for agent_pk in cat_agent_pks]
+            # yield Constraint('%s = %s' % (' + '.join(ag_sum), self.category_variable(category_pk)))
+            for agent_pk_1, agent_pk_2 in itertools.product(cat_agent_pks, cat_agent_pks):
+                if agent_pk_1 >= agent_pk_2:
+                    continue
                 yield Constraint(
-                    '%d * %s <= %s + %g' % (count, self.category_variable(category_pk, agent_pk),
-                                            self.category_variable(category_pk), category.balancing_tolerance * count))
+                    '%s <= %s + %g' % (self.category_variable(category_pk, agent_pk_1),
+                                       self.category_variable(category_pk, agent_pk_2), category.balancing_tolerance))
                 yield Constraint(
-                    '%d * %s >= %s - %g' % (count, self.category_variable(category_pk, agent_pk),
-                                            self.category_variable(category_pk), category.balancing_tolerance * count)
-                )
+                    '%s <= %s + %g' % (self.category_variable(category_pk, agent_pk_2),
+                                       self.category_variable(category_pk, agent_pk_1), category.balancing_tolerance))
+            # for agent_pk in cat_agent_pks:
+            #     count = len(cat_agent_pks)
+            #     yield Constraint(
+            #         '%d * %s <= %s + %g' % (count, self.category_variable(category_pk, agent_pk),
+            #                               self.category_variable(category_pk), category.balancing_tolerance * count))
+            #     yield Constraint(
+            #         '%d * %s >= %s - %g' % (count, self.category_variable(category_pk, agent_pk),
+            #                                 self.category_variable(category_pk), category.balancing_tolerance * count)
+            #     )
 
     def compute_balancing(self, result_list):
         """Return a dict
@@ -205,7 +216,6 @@ class Scheduler(object):
 
         result_dict = {}
         for agent_pk, task_pk in result_list:
-            print(agent_pk, task_pk)
             result_dict.setdefault(agent_pk, set()).add(task_pk)
 
         def is_affected_to(agent_pk_, task_pk_):
