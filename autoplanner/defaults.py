@@ -1,4 +1,6 @@
-DF_JS = ['admin/js/core.js', 'admin/js/calendar.js', 'admin/js/admin/DateTimeShortcuts.js',
+DF_JS = ['admin/js/core.js',
+         'admin/js/calendar.js',
+         'admin/js/admin/DateTimeShortcuts.js',
          'autoplanner/js/autoplanner.js']
 DF_CSS = ['autoplanner/css/autoplanner.css']
 DF_INDEX_VIEW = 'autoplanner.views.index'

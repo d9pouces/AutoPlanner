@@ -48,22 +48,25 @@ class Organization(models.Model):
                                                    help_text=_('Leave it blank if you do not want to set a limit'))
     admins = models.ManyToManyField(settings.AUTH_USER_MODEL, db_index=True, verbose_name=_('Administrators'))
     current_schedule = models.ForeignKey('ScheduleRun', default=None, blank=True, null=True, db_index=True,
-                                         related_name='current_organizations', on_delete=models.CASCADE)
+                                         related_name='current_organizations', on_delete=models.SET_NULL)
 
     @classmethod
     def query(cls, request: HttpRequest, readonly=False):
-        return cls.objects.all()
+        access_token = ''
+        user = getattr(request, 'user')
+        if hasattr(request, 'GET'):
+            # noinspection PyCallByClass,PyTypeChecker
+            access_token = request.GET.get(API_KEY_VARIABLE, '')
+        if not user or user.is_anonymous:
+            return cls.objects.filter(access_token=access_token)
         # noinspection PyUnresolvedReferences
-        if request.user.is_anonymous:
-            return cls.objects.filter(access_token=request.GET.get(API_KEY_VARIABLE, ''))
-        # noinspection PyUnresolvedReferences
-        if request.user.is_superuser:
+        elif user.is_superuser:
             return cls.objects.all()
-        if readonly:
+        elif readonly:
             # noinspection PyUnresolvedReferences
-            return cls.objects.filter(Q(admins=request.user) | Q(access_token=request.GET.get(API_KEY_VARIABLE, '')))
+            return cls.objects.filter(Q(admins=user) | Q(access_token=access_token))
         # noinspection PyUnresolvedReferences
-        return cls.objects.filter(admins=request.user)
+        return cls.objects.filter(admins=user)
 
     def __str__(self):
         return self.name
@@ -78,7 +81,7 @@ class ScheduleRun(models.Model):
     status = models.NullBooleanField(_('Is valid?'), db_index=True, default=None)
     is_selected = models.BooleanField(_('Selected?'), db_index=True, default=False)
     message = models.TextField(_('Result'), max_length=500, default='', blank=True)
-    celery_task_id = models.CharField(_('Celery task id'), db_index=True, max_length=20, blank=True, null=True,
+    celery_task_id = models.CharField(_('Celery task id'), db_index=True, max_length=60, blank=True, null=True,
                                       default=None)
     celery_start = models.DateTimeField(_('Computation start'), null=True, blank=True, default=None)
     celery_end = models.DateTimeField(_('Computation end'), null=True, blank=True, default=None)
