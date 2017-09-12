@@ -15,7 +15,6 @@ urlpatterns = [
         views.generate_ics, name='ical'),
     url(r'^org/ical/(?P<organization_pk>\d+)/cat/(?P<category_pk>\d+)/(?P<title>.*)\.ics',
         views.generate_ics, name='ical'),
-    url(r'^tasks/multiply/(?P<task_pk>\d+)\.html', views.multiply_task, name='multiply_task'),
     url(r'^tasks/apply_schedule_run/(?P<schedule_run_pk>\d+)\.html', views.apply_schedule_run,
         name='apply_schedule_run'),
 ]

@@ -1,6 +1,7 @@
 import datetime
 import json
 from django.conf import settings
+from django.db.models import F
 from django.template.response import TemplateResponse
 from django.utils.formats import date_format
 from django.utils.formats import time_format
@@ -129,67 +130,6 @@ def organization(request, organization_pk):
 
 
 @never_cache
-def multiply_task(request, task_pk):
-    obj = get_object_or_404(Task.query(request), pk=task_pk)
-    # noinspection PyProtectedMember
-    model_admin = admin.site._registry[Organization]
-    assert isinstance(model_admin, OrganizationAdmin)
-    # noinspection PyProtectedMember
-    opts = model_admin.model._meta
-    if request.method == 'POST':
-        form = MultiplyTaskForm(request.POST)
-        if form.is_valid():
-            until_src = form.cleaned_data['until']
-            every_src = form.cleaned_data['every']
-            assert isinstance(until_src, datetime.datetime)
-            limit = datetime.datetime(year=until_src.year, month=until_src.month, day=until_src.day,
-                                      hour=23, minute=59, second=59, tzinfo=obj.start_time.tzinfo)
-            to_create = []
-            increment = datetime.timedelta(days=every_src)
-            start_time = obj.start_time + increment
-            end_time = obj.end_time + increment
-            matcher = re.match(r'^(.*)\s+\((\d+)\)', obj.name)
-            if matcher:
-                new_name = matcher.group(1)
-                name_index = int(matcher.group(2)) + 1
-            else:
-                new_name = obj.name
-                name_index = 2
-            current_category_pks = [x.pk for x in obj.categories.all()]
-            while start_time < limit:
-                new_task = Task(organization_id=obj.organization_id, name='%s (%d)' % (new_name, name_index),
-                                start_time=start_time, end_time=end_time)
-                to_create.append(new_task)
-                start_time += increment
-                end_time += increment
-                name_index += 1
-            if to_create:
-                if current_category_pks:
-                    cls = Task.categories.through
-                    all_categories_to_create = []
-                    for new_task in to_create:
-                        new_task.save()
-                        all_categories_to_create += [cls(task_id=new_task.pk, category_id=category_pk)
-                                                     for category_pk in current_category_pks]
-                    cls.objects.bulk_create(all_categories_to_create)
-                else:
-                    Task.objects.bulk_create(to_create)
-            if len(to_create) > 1:
-                messages.info(request, _('%(count)d tasks have been created.') % {'count': len(to_create)})
-            elif to_create:
-                messages.info(request, _('A task has been created.'))
-            new_url = reverse('admin:%s_%s_change' % (opts.app_label, opts.model_name),
-                              args=(quote(obj.organization_id), ), current_app=model_admin.admin_site.name)
-            return HttpResponseRedirect(new_url)
-    else:
-        form = MultiplyTaskForm(initial={'source_task': obj})
-    template_values = get_template_values(request, organization_pk=obj.organization_id)
-    template_values['obj'] = obj
-    template_values['form'] = form
-    return render_to_response('autoplanner/multiply_task.html', template_values, RequestContext(request))
-
-
-@never_cache
 def schedule_task(request, organization_pk):
     obj = get_object_or_404(Organization.query(request), pk=organization_pk)
     # noinspection PyProtectedMember
@@ -308,6 +248,14 @@ def index(request):
 
 def organization_index(request, organization_pk):
     obj = get_object_or_404(Organization.query(request), pk=organization_pk)
+    invalid_tasks = list(Task.objects.filter(organization=obj, end_time__lte=F('start_time')))
+    if invalid_tasks:
+        if len(invalid_tasks) > 1:
+            content = ', '.join([str(x) for x in invalid_tasks])
+        else:
+            content = str(invalid_tasks[0])
+        msg = _('Finish time is before start time for %(t)s') % {'t': content}
+        messages.error(request, msg)
     set_websocket_topics(request, obj)
     template_values = {'organization': obj}
     return TemplateResponse(request, 'autoplanner/organization_index.html', context=template_values)

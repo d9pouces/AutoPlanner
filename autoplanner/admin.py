@@ -37,19 +37,7 @@ class CategoryInline(admin.TabularInline):
 class TaskInline(admin.TabularInline):
     model = Task
     classes = ['collapse', 'collapsed']
-
-    @staticmethod
-    def repeat(obj):
-        if obj and obj.pk:
-            return format_html('<a href="{}" class="button default">{}</a>',
-                               reverse('multiply_task', kwargs={'task_pk': obj.pk}),
-                               _('Repeat'))
-        return ''
-
-    repeat.allow_tags = True
-    repeat.verbose_name = _('Repeat')
-    readonly_fields = ('repeat',)
-    fields = ('categories', 'name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat')
+    fields = ('categories', 'name', 'start_time', 'end_time', 'agent', 'fixed', )
 
     def get_readonly_fields(self, request, obj=None):
         if request.GET.get('readonly'):
@@ -163,14 +151,6 @@ class TaskAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return self.model.query(request)
 
-    # noinspection PyMethodMayBeStatic
-    def repeat_button(self, obj):
-        if obj and obj.pk:
-            return format_html('<a href="{}" class="button default">{}</a>',
-                               reverse('multiply_task', kwargs={'task_pk': obj.pk}),
-                               _('Repeat'))
-        return ''
-
     def fix_agents(self, request, queryset):
         rows_updated = queryset.exclude(agent=None).update(fixed=True)
         if rows_updated > 1:
@@ -189,13 +169,10 @@ class TaskAdmin(admin.ModelAdmin):
 
     unfix_agents.short_description = _('Unfix the agent processing the selected tasks ')
 
-    repeat_button.allow_tags = True
-    readonly_fields = ('repeat_button',)
-    repeat_button.short_description = _('Repeat')
     actions = ['fix_agents', 'unfix_agents']
     search_fields = ['name', ]
     fields = ['categories', 'name', 'start_time', 'end_time', 'agent', 'fixed', ]
-    list_display = ['name', 'start_time', 'end_time', 'agent', 'fixed', 'repeat_button', ]
+    list_display = ['name', 'start_time', 'end_time', 'agent', 'fixed', ]
     list_editable = ['start_time', 'end_time', 'agent', 'fixed']
     list_filter = ['categories', 'agent', 'organization', 'fixed', 'start_time', 'end_time', ]
 

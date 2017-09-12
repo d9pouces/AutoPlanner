@@ -49,7 +49,8 @@ class Scheduler(object):
 
     def get_categories_by_task(self):
         result = {x.pk: set() for x in self.tasks}
-        for related in Task.categories.through.objects.filter(category__id__in=self.categories_by_pk):
+        for related in Task.categories.through.objects.filter(category__id__in=self.categories_by_pk,
+                                                              task__id__in=result):
             result[related.task_id].add(related.category_id)
         return result
 

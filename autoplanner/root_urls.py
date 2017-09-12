@@ -26,7 +26,6 @@ urlpatterns = [url(r'^jsi18n/$', javascript_catalog, {'packages': ('djangofloor'
                    views.generate_ics, name='ical'),
                url('^org/ical/(?P<organization_pk>\d+)/cat/(?P<category_pk>\d+)/(?P<title>.*)\.ics',
                    views.generate_ics, name='ical'),
-               url('^tasks/multiply/(?P<task_pk>\d+)\.html', views.multiply_task, name='multiply_task'),
                url('^tasks/apply_schedule_run/(?P<schedule_run_pk>\d+)\.html', views.apply_schedule_run,
                    name='apply_schedule_run'),
                url(r'^', include(admin_urls[:2])),

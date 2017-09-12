@@ -9,7 +9,7 @@ from django import forms
 from django.utils.timezone import utc
 from django.utils.translation import ugettext as _
 from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm, Choice
-from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER, modal_show, INFO, modal_hide
+from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER, modal_show, INFO, modal_hide, WARNING
 from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before, focus, \
     content, replace_with
 from djangofloor.wsgi.window_info import render_to_string
@@ -31,6 +31,12 @@ from autoplanner.utils import python_to_components
 from autoplanner.tasks import compute_schedule, kill_schedule, apply_schedule
 
 __author__ = 'Matthieu Gallet'
+
+
+def check_task(window_info, task):
+    if task.end_time < task.start_time:
+        msg = _('Finish time is before start time for %(t)s') % {'t': task}
+        notify(window_info, msg, level=WARNING, style=NOTIFICATION)
 
 
 def int_or_none(value):
@@ -733,6 +739,7 @@ def set_task_start_time(window_info, organization_pk: int, task_pk: int, value: 
         task.start_time = task.start_time.replace(hour=start_time.hour, minute=start_time.minute,
                                                   second=start_time.second)
         task.save()
+        check_task(window_info, task)
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-check')
     elif value:
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
@@ -746,6 +753,7 @@ def set_task_end_time(window_info, organization_pk: int, task_pk: int, value: Se
         end_time = value.cleaned_data['end_time_1']
         task.end_time = task.end_time.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
         task.save()
+        check_task(window_info, task)
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-check')
     elif value:
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
@@ -759,6 +767,7 @@ def set_task_start_date(window_info, organization_pk: int, task_pk: int, value: 
         start_time = value.cleaned_data['start_time_0']
         task.start_time = task.start_time.replace(year=start_time.year, month=start_time.month, day=start_time.day)
         task.save()
+        check_task(window_info, task)
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-check')
     elif value:
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
@@ -772,6 +781,7 @@ def set_task_end_date(window_info, organization_pk: int, task_pk: int, value: Se
         end_time = value.cleaned_data['end_time_0']
         task.end_time = task.end_time.replace(year=end_time.year, month=end_time.month, day=end_time.day)
         task.save()
+        check_task(window_info, task)
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-check')
     elif value:
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
@@ -827,6 +837,7 @@ def add_task(window_info, organization_pk: int, value: SerializedForm(TaskAddFor
                    'agents': agents, 'categories': categories, }
         content_str = render_to_string('autoplanner/include/task.html', context=context,
                                        window_info=window_info)
+        check_task(window_info, task)
         before(window_info, '#row_task_None', content_str)
         focus(window_info, '#row_task_None')
     elif value and not value.is_valid():
@@ -884,6 +895,7 @@ def task_multiply(window_info, organization_pk: int, task_pk: int, form: Seriali
             start_time += increment
             end_time += increment
             name_index += 1
+            check_task(window_info, new_task)
         if tasks_to_create:
             cls = Task.categories.through
             all_categories_to_create = []
@@ -1033,6 +1045,9 @@ def task_import(window_info, organization_pk: int, form: SerializedForm(TaskImpo
             task = Task(name=row[0].strip(), fixed=bool(agent_id), agent_id=agent_id, start_time=start, end_time=end,
                         organization_id=organization_pk)
             task.save()
+            if end < start:
+                msg = _('Finish time is before start time for %(t)s') % {'t': task}
+                notify(window_info, msg, level=WARNING, style=NOTIFICATION)
             task_categories_to_create += [cls(task_id=task.pk, category_id=x) for x in category_ids]
             context['obj_categories'] = category_ids
             context['obj'] = task
