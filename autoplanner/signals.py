@@ -8,16 +8,12 @@ import markdown
 from django import forms
 from django.utils.timezone import utc
 from django.utils.translation import ugettext as _
-from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm, Choice
-from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER, modal_show, INFO, modal_hide, WARNING
-from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before, focus, \
-    content, replace_with
-from djangofloor.wsgi.window_info import render_to_string
 
-from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTokenForm, OrganizationMaxComputeTimeForm, \
-    CategoryNameForm, CategoryBalancingModeForm, CategoryAutoAffinityForm, CategoryAddForm, AgentAddForm, AgentNameForm, \
-    AgentStartTimeForm, AgentEndTimeForm, \
-    AgentCategoryPreferencesAffinityForm, AgentCategoryPreferencesAddForm, AgentCategoryPreferencesBalancingOffsetForm, \
+from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTokenForm, \
+    OrganizationMaxComputeTimeForm, CategoryNameForm, CategoryBalancingModeForm, CategoryAutoAffinityForm, \
+    CategoryAddForm, AgentAddForm, AgentNameForm, AgentStartTimeForm, AgentEndTimeForm, \
+    AgentCategoryPreferencesAffinityForm, AgentCategoryPreferencesAddForm, \
+    AgentCategoryPreferencesBalancingOffsetForm, \
     AgentCategoryPreferencesBalancingCountForm, MaxTaskAffectationAddForm, MaxTaskAffectationModeForm, \
     MaxTaskAffectationCategoryForm, MaxTaskAffectationTaskMaximumCountForm, MaxTaskAffectationRangeTimeSliceForm, \
     AgentCategoryPreferencesBalancingOffsetTimeForm, MaxTimeAffectationTaskMaximumTimeForm, MaxTimeAffectationAddForm, \
@@ -27,8 +23,13 @@ from autoplanner.forms import OrganizationDescriptionForm, OrganizationAccessTok
 from autoplanner.models import Organization, default_token, Category, Agent, AgentCategoryPreferences, \
     MaxTaskAffectation, MaxTimeTaskAffectation, Task, ScheduleRun, API_KEY_VARIABLE
 from autoplanner.schedule import Scheduler
-from autoplanner.utils import python_to_components
 from autoplanner.tasks import compute_schedule, kill_schedule, apply_schedule
+from autoplanner.utils import python_to_components
+from djangofloor.decorators import signal, is_authenticated, everyone, SerializedForm, Choice
+from djangofloor.signals.bootstrap3 import notify, NOTIFICATION, DANGER, modal_show, INFO, modal_hide, WARNING
+from djangofloor.signals.html import render_to_client, add_attribute, remove_class, add_class, remove, before, focus, \
+    content, replace_with
+from djangofloor.wsgi.window_info import render_to_string
 
 __author__ = 'Matthieu Gallet'
 
