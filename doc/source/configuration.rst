@@ -70,7 +70,7 @@ Here is the complete list of settings:
   redis_port = [[]]
   
   [database]
-  db = /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/database.sqlite3 
+  db = /home/usr/.virtualenvs/autoplanner35/var/autoplanner/database.sqlite3
   	# Main database name (or path of the sqlite3 database)
   engine = sqlite3 
   	# Main database engine ("mysql", "postgresql", "sqlite3", "oracle", or the dotted name of the Django backend)
@@ -102,7 +102,7 @@ Here is the complete list of settings:
   [global]
   admin_email = admin@localhost 
   	# e-mail address for receiving logged errors
-  data = /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner 
+  data = /home/usr/.virtualenvs/autoplanner35/var/autoplanner
   	# where all data will be stored (static/uploaded/temporary files, …). If you change it, you must run the collectstatic and migrate commands again.
   language_code = fr-fr 
   	# default to fr_FR
@@ -278,7 +278,7 @@ If you have a lot of files to backup, beware of the available disk place!
   touch /var/backups/autoplanner/backup_media.tar.gz
   crontab -e
   MAILTO=admin@localhost
-  0 3 * * * rsync -arltDE /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/media/ /var/backups/autoplanner/media/
+  0 3 * * * rsync -arltDE /home/usr/.virtualenvs/autoplanner35/var/autoplanner/media/ /var/backups/autoplanner/media/
   0 5 0 * * logrotate -f /etc/autoplanner/backup_media.conf
 
 Restoring a backup
@@ -287,7 +287,7 @@ Restoring a backup
 .. code-block:: bash
 
   cat /var/backups/autoplanner/backup_db.sql.gz | gunzip | autoplanner-manage dbshell
-  tar -C /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/media/ -xf /var/backups/autoplanner/backup_media.tar.gz
+  tar -C /home/usr/.virtualenvs/autoplanner35/var/autoplanner/media/ -xf /var/backups/autoplanner/backup_media.tar.gz
 
 
 

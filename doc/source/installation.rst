@@ -29,7 +29,7 @@ Preparing the environment
 .. code-block:: bash
 
     sudo adduser --disabled-password autoplanner
-    sudo chown autoplanner:www-data /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner
+    sudo chown autoplanner:www-data /home/usr/.virtualenvs/autoplanner35/var/autoplanner
     sudo apt-get install virtualenvwrapper python3.6 python3.6-dev build-essential postgresql-client libpq-dev
     sudo -u autoplanner -H -i
     mkvirtualenv autoplanner -p `which python3.6`
@@ -76,14 +76,14 @@ Only the chosen server name (like `autoplanner.example.org`) can be used for acc
     cat << EOF | sudo tee /etc/apache2/sites-available/autoplanner.conf
     <VirtualHost *:80>
         ServerName $SERVICE_NAME
-        Alias /static/ /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/static/
+        Alias /static/ /home/usr/.virtualenvs/autoplanner35/var/autoplanner/static/
         ProxyPass /static/ !
         <Location /static/>
             Order deny,allow
             Allow from all
             Satisfy any
         </Location>
-        Alias /media/ /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/media/
+        Alias /media/ /home/usr/.virtualenvs/autoplanner35/var/autoplanner/media/
         ProxyPass /media/ !
         <Location /media/>
             Order deny,allow
@@ -92,15 +92,15 @@ Only the chosen server name (like `autoplanner.example.org`) can be used for acc
         </Location>
         ProxyPass / http://localhost:9000/
         ProxyPassReverse / http://localhost:9000/
-        DocumentRoot /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/static/
+        DocumentRoot /home/usr/.virtualenvs/autoplanner35/var/autoplanner/static/
         ServerSignature off
         XSendFile on
-        XSendFilePath /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/media/
+        XSendFilePath /home/usr/.virtualenvs/autoplanner35/var/autoplanner/media/
         # in older versions of XSendFile (<= 0.9), use XSendFileAllowAbove On
     </VirtualHost>
     EOF
-    sudo mkdir /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner
-    sudo chown -R www-data:www-data /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner
+    sudo mkdir /home/usr/.virtualenvs/autoplanner35/var/autoplanner
+    sudo chown -R www-data:www-data /home/usr/.virtualenvs/autoplanner35/var/autoplanner
     sudo a2ensite autoplanner.conf
     sudo apachectl -t
     sudo apachectl restart
@@ -140,14 +140,14 @@ If you want to use SSL:
         ServerName $SERVICE_NAME
         SSLCertificateFile $PEM
         SSLEngine on
-        Alias /static/ /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/static/
+        Alias /static/ /home/usr/.virtualenvs/autoplanner35/var/autoplanner/static/
         ProxyPass /static/ !
         <Location /static/>
             Order deny,allow
             Allow from all
             Satisfy any
         </Location>
-        Alias /media/ /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/media/
+        Alias /media/ /home/usr/.virtualenvs/autoplanner35/var/autoplanner/media/
         ProxyPass /media/ !
         <Location /media/>
             Order deny,allow
@@ -156,7 +156,7 @@ If you want to use SSL:
         </Location>
         ProxyPass / http://localhost:9000/
         ProxyPassReverse / http://localhost:9000/
-        DocumentRoot /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/static/
+        DocumentRoot /home/usr/.virtualenvs/autoplanner35/var/autoplanner/static/
         ServerSignature off
         RequestHeader set X_FORWARDED_PROTO https
         <Location />
@@ -173,12 +173,12 @@ If you want to use SSL:
             RequestHeader set REMOTE_USER %{REMOTE_USER}s
         </Location>
         XSendFile on
-        XSendFilePath /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/media/
+        XSendFilePath /home/usr/.virtualenvs/autoplanner35/var/autoplanner/media/
         # in older versions of XSendFile (<= 0.9), use XSendFileAllowAbove On
     </VirtualHost>
     EOF
-    sudo mkdir /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner
-    sudo chown -R www-data:www-data /Users/flanker/.virtualenvs/autoplanner35/var/autoplanner
+    sudo mkdir /home/usr/.virtualenvs/autoplanner35/var/autoplanner
+    sudo chown -R www-data:www-data /home/usr/.virtualenvs/autoplanner35/var/autoplanner
     sudo a2ensite autoplanner.conf
     sudo apachectl -t
     sudo apachectl restart
@@ -256,7 +256,7 @@ You can also use systemd to launch autoplanner:
     [Service]
     User=autoplanner
     Group=autoplanner
-    WorkingDirectory=/Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/
+    WorkingDirectory=/home/usr/.virtualenvs/autoplanner35/var/autoplanner/
     ExecStart=$VIRTUAL_ENV/bin/autoplanner-web
     ExecReload=/bin/kill -s HUP \$MAINPID
     ExecStop=/bin/kill -s TERM \$MAINPID
@@ -273,7 +273,7 @@ You can also use systemd to launch autoplanner:
     User=autoplanner
     Group=autoplanner
     Type=forking
-    WorkingDirectory=/Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/
+    WorkingDirectory=/home/usr/.virtualenvs/autoplanner35/var/autoplanner/
     ExecStart=$VIRTUAL_ENV/bin/autoplanner-celery worker -Q celery
     ExecReload=/bin/kill -s HUP \$MAINPID
     ExecStop=/bin/kill -s TERM \$MAINPID
@@ -291,7 +291,7 @@ You can also use systemd to launch autoplanner:
     User=autoplanner
     Group=autoplanner
     Type=forking
-    WorkingDirectory=/Users/flanker/.virtualenvs/autoplanner35/var/autoplanner/
+    WorkingDirectory=/home/usr/.virtualenvs/autoplanner35/var/autoplanner/
     ExecStart=$VIRTUAL_ENV/bin/autoplanner-celery worker -Q fast
     ExecReload=/bin/kill -s HUP \$MAINPID
     ExecStop=/bin/kill -s TERM \$MAINPID
