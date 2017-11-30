@@ -1,22 +1,15 @@
 Installation
 ============
 
-Like many Python packages, you can use several methods to install AutoPlanner.
-AutoPlanner designed to run with python3.6.x+.
-The following packages are also required:
-
-  * setuptools >= 3.0,
-  * djangofloor >= 1.0.0.
-
-
-Of course you can install it from the source, but the preferred way is to install it as a standard Python package, via pip.
-
-
-Installing or Upgrading
------------------------
-
 Here is a simple tutorial to install AutoPlanner on a basic Debian/Linux installation.
 You should easily adapt it on a different Linux or Unix flavor.
+
+Like many Python packages, you can use several methods to install AutoPlanner.
+Of course you can install it from source, but the preferred way is to install it as a standard Python package, via pip.
+
+
+Upgrading
+---------
 
 If you want to upgrade an existing installation, just install the new version (with the `--upgrade` flag for `pip`) and run
 the `collectstatic` and `migrate` commands (for updating both static files and the database).
@@ -29,7 +22,7 @@ Preparing the environment
 .. code-block:: bash
 
     sudo adduser --disabled-password autoplanner
-    sudo chown autoplanner:www-data /home/usr/.virtualenvs/autoplanner35/var/autoplanner
+    sudo chown autoplanner:www-data $DATA_ROOT
     sudo apt-get install virtualenvwrapper python3.6 python3.6-dev build-essential postgresql-client libpq-dev
     sudo -u autoplanner -H -i
     mkvirtualenv autoplanner -p `which python3.6`
@@ -66,6 +59,8 @@ Apache
 Only the Apache installation is presented, but an installation behind nginx should be similar.
 Only the chosen server name (like `autoplanner.example.org`) can be used for accessing your site. For example, you cannot use its IP address.
 
+
+
 .. code-block:: bash
 
     SERVICE_NAME=autoplanner.example.org
@@ -76,14 +71,16 @@ Only the chosen server name (like `autoplanner.example.org`) can be used for acc
     cat << EOF | sudo tee /etc/apache2/sites-available/autoplanner.conf
     <VirtualHost *:80>
         ServerName $SERVICE_NAME
-        Alias /static/ /home/usr/.virtualenvs/autoplanner35/var/autoplanner/static/
+        Alias /static/ $DATA_ROOT/static/
         ProxyPass /static/ !
         <Location /static/>
             Order deny,allow
             Allow from all
             Satisfy any
         </Location>
-        Alias /media/ /home/usr/.virtualenvs/autoplanner35/var/autoplanner/media/
+        # CAUTION: THE FOLLOWING LINES ALLOW PUBLIC ACCESS TO ANY UPLOADED CONTENT
+        Alias /media/ $DATA_ROOT/media/
+        # the right value is provided by "autoplanner-ctl config python | grep MEDIA_ROOT"
         ProxyPass /media/ !
         <Location /media/>
             Order deny,allow
@@ -92,18 +89,26 @@ Only the chosen server name (like `autoplanner.example.org`) can be used for acc
         </Location>
         ProxyPass / http://localhost:9000/
         ProxyPassReverse / http://localhost:9000/
-        DocumentRoot /home/usr/.virtualenvs/autoplanner35/var/autoplanner/static/
+        DocumentRoot $DATA_ROOT/static/
+        # the right value is provided by "autoplanner-ctl config python | grep STATIC_ROOT"
         ServerSignature off
+        # the optional two following lines are useful
+        # for keeping uploaded content  private with good performance
         XSendFile on
-        XSendFilePath /home/usr/.virtualenvs/autoplanner35/var/autoplanner/media/
+        XSendFilePath $DATA_ROOT/media/
+        # the right value is provided by "autoplanner-ctl config python | grep MEDIA_ROOT"
         # in older versions of XSendFile (<= 0.9), use XSendFileAllowAbove On
     </VirtualHost>
     EOF
-    sudo mkdir /home/usr/.virtualenvs/autoplanner35/var/autoplanner
-    sudo chown -R www-data:www-data /home/usr/.virtualenvs/autoplanner35/var/autoplanner
+    sudo mkdir $DATA_ROOT
+    sudo chown -R www-data:www-data $DATA_ROOT
     sudo a2ensite autoplanner.conf
     sudo apachectl -t
     sudo apachectl restart
+
+
+
+
 
 
 If you want to use SSL:
@@ -140,14 +145,16 @@ If you want to use SSL:
         ServerName $SERVICE_NAME
         SSLCertificateFile $PEM
         SSLEngine on
-        Alias /static/ /home/usr/.virtualenvs/autoplanner35/var/autoplanner/static/
+        Alias /static/ $DATA_ROOT/static/
         ProxyPass /static/ !
         <Location /static/>
             Order deny,allow
             Allow from all
             Satisfy any
         </Location>
-        Alias /media/ /home/usr/.virtualenvs/autoplanner35/var/autoplanner/media/
+        # CAUTION: THE FOLLOWING LINES ALLOW PUBLIC ACCESS TO ANY UPLOADED CONTENT
+        Alias /media/ $DATA_ROOT/media/
+        # the right value is provided by "autoplanner-ctl config python | grep MEDIA_ROOT"
         ProxyPass /media/ !
         <Location /media/>
             Order deny,allow
@@ -156,7 +163,8 @@ If you want to use SSL:
         </Location>
         ProxyPass / http://localhost:9000/
         ProxyPassReverse / http://localhost:9000/
-        DocumentRoot /home/usr/.virtualenvs/autoplanner35/var/autoplanner/static/
+        DocumentRoot $DATA_ROOT/static/
+        # the right value is provided by "autoplanner-ctl config python | grep STATIC_ROOT"
         ServerSignature off
         RequestHeader set X_FORWARDED_PROTO https
         <Location />
@@ -172,13 +180,16 @@ If you want to use SSL:
             Require valid-user
             RequestHeader set REMOTE_USER %{REMOTE_USER}s
         </Location>
+        # the optional two following lines are useful
+        # for private uploaded content and good performance
         XSendFile on
-        XSendFilePath /home/usr/.virtualenvs/autoplanner35/var/autoplanner/media/
+        XSendFilePath $DATA_ROOT/media/
+        # the right value is provided by "autoplanner-ctl config python | grep MEDIA_ROOT"
         # in older versions of XSendFile (<= 0.9), use XSendFileAllowAbove On
     </VirtualHost>
     EOF
-    sudo mkdir /home/usr/.virtualenvs/autoplanner35/var/autoplanner
-    sudo chown -R www-data:www-data /home/usr/.virtualenvs/autoplanner35/var/autoplanner
+    sudo mkdir $DATA_ROOT
+    sudo chown -R www-data:www-data $DATA_ROOT
     sudo a2ensite autoplanner.conf
     sudo apachectl -t
     sudo apachectl restart
@@ -195,7 +206,7 @@ Now, it's time to install AutoPlanner:
 
     pip install setuptools --upgrade
     pip install pip --upgrade
-    pip install autoplanner psycopg2 gevent
+    pip install autoplanner psycopg2
     mkdir -p $VIRTUAL_ENV/etc/autoplanner
     cat << EOF > $VIRTUAL_ENV/etc/autoplanner/settings.ini
     [global]
@@ -210,16 +221,18 @@ Now, it's time to install AutoPlanner:
     EOF
     chmod 0400 $VIRTUAL_ENV/etc/autoplanner/settings.ini
     # protect passwords in the config files from by being readable by everyone
-    autoplanner-manage collectstatic --noinput
-    autoplanner-manage migrate
-    autoplanner-manage createsuperuser
+    autoplanner-ctl collectstatic --noinput
+    autoplanner-ctl migrate
+    autoplanner-ctl createsuperuser
+
+
 
 
 
 supervisor
 ----------
 
-Supervisor is required to automatically launch autoplanner:
+Supervisor can be used to automatically launch autoplanner:
 
 .. code-block:: bash
 
@@ -227,13 +240,13 @@ Supervisor is required to automatically launch autoplanner:
     sudo apt-get install supervisor
     cat << EOF | sudo tee /etc/supervisor/conf.d/autoplanner.conf
     [program:autoplanner_aiohttp]
-    command = $VIRTUAL_ENV/bin/autoplanner-web
+    command = $VIRTUAL_ENV/bin/autoplanner-ctl server
     user = autoplanner
     [program:autoplanner_celery_celery]
-    command = $VIRTUAL_ENV/bin/autoplanner-celery worker -Q celery
+    command = $VIRTUAL_ENV/bin/autoplanner-ctl worker -Q celery
     user = autoplanner
     [program:autoplanner_celery_fast]
-    command = $VIRTUAL_ENV/bin/autoplanner-celery worker -Q fast
+    command = $VIRTUAL_ENV/bin/autoplanner-ctl worker -Q fast
     user = autoplanner
     EOF
     sudo service supervisor stop
@@ -245,45 +258,27 @@ Now, Supervisor should start autoplanner after a reboot.
 systemd
 -------
 
-You can also use systemd to launch autoplanner:
+You can also use systemd (present in many modern Linux distributions) to launch autoplanner:
 
 .. code-block:: bash
 
-    cat << EOF | sudo tee /etc/systemd/system/autoplanner-web.service
+    cat << EOF | sudo tee /etc/systemd/system/autoplanner-ctl.service
     [Unit]
-    Description=AutoPlanner aIOHTTP process
+    Description=AutoPlanner HTTP process
     After=network.target
     [Service]
     User=autoplanner
     Group=autoplanner
-    WorkingDirectory=/home/usr/.virtualenvs/autoplanner35/var/autoplanner/
-    ExecStart=$VIRTUAL_ENV/bin/autoplanner-web
+    WorkingDirectory=$DATA_ROOT/
+    ExecStart=$VIRTUAL_ENV/bin/autoplanner-ctl server
     ExecReload=/bin/kill -s HUP \$MAINPID
     ExecStop=/bin/kill -s TERM \$MAINPID
     [Install]
     WantedBy=multi-user.target
     EOF
-    systemctl enable autoplanner-web.service
-    sudo service autoplanner-web start
-    cat << EOF | sudo tee /etc/systemd/system/autoplanner-celery.service
-    [Unit]
-    Description=AutoPlanner Celery process
-    After=network.target
-    [Service]
-    User=autoplanner
-    Group=autoplanner
-    Type=forking
-    WorkingDirectory=/home/usr/.virtualenvs/autoplanner35/var/autoplanner/
-    ExecStart=$VIRTUAL_ENV/bin/autoplanner-celery worker -Q celery
-    ExecReload=/bin/kill -s HUP \$MAINPID
-    ExecStop=/bin/kill -s TERM \$MAINPID
-    [Install]
-    WantedBy=multi-user.target
-    EOF
-    mkdir -p /run
-    sudo systemctl enable autoplanner-celery.service
-    sudo service autoplanner-celery start
-    cat << EOF | sudo tee /etc/systemd/system/autoplanner-celery-fast.service
+    systemctl enable autoplanner-ctl.service
+    sudo service autoplanner-ctl start
+    cat << EOF | sudo tee /etc/systemd/system/autoplanner-ctl-celery.service
     [Unit]
     Description=AutoPlanner Celery process
     After=network.target
@@ -291,16 +286,34 @@ You can also use systemd to launch autoplanner:
     User=autoplanner
     Group=autoplanner
     Type=forking
-    WorkingDirectory=/home/usr/.virtualenvs/autoplanner35/var/autoplanner/
-    ExecStart=$VIRTUAL_ENV/bin/autoplanner-celery worker -Q fast
+    WorkingDirectory=$DATA_ROOT/
+    ExecStart=$VIRTUAL_ENV/bin/autoplanner-ctl worker -Q celery
     ExecReload=/bin/kill -s HUP \$MAINPID
     ExecStop=/bin/kill -s TERM \$MAINPID
     [Install]
     WantedBy=multi-user.target
     EOF
     mkdir -p /run
-    sudo systemctl enable autoplanner-celery-fast.service
-    sudo service autoplanner-celery-fast start
+    sudo systemctl enable autoplanner-ctl.service
+    sudo service autoplanner-ctl start
+    cat << EOF | sudo tee /etc/systemd/system/autoplanner-ctl-fast.service
+    [Unit]
+    Description=AutoPlanner Celery process
+    After=network.target
+    [Service]
+    User=autoplanner
+    Group=autoplanner
+    Type=forking
+    WorkingDirectory=$DATA_ROOT/
+    ExecStart=$VIRTUAL_ENV/bin/autoplanner-ctl worker -Q fast
+    ExecReload=/bin/kill -s HUP \$MAINPID
+    ExecStop=/bin/kill -s TERM \$MAINPID
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+    mkdir -p /run
+    sudo systemctl enable autoplanner-ctl-fast.service
+    sudo service autoplanner-ctl-fast start
 
 
 
