@@ -8,7 +8,6 @@ from django.db.models import Q
 from django.http import HttpRequest
 from django.urls import reverse
 from django.utils.formats import date_format, time_format
-from django.utils.text import force_text
 from django.utils.timezone import get_default_timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -91,7 +90,7 @@ class ScheduleRun(models.Model):
     def __str__(self):
         end = self.celery_end
         if not end:
-            return force_text(_('Not finished yet.'))
+            return str(_('Not finished yet.'))
         return '%(d)s, %(t)s' % {'d': date_format(end, use_l10n=True), 't': time_format(end, use_l10n=True)}
 
     def __unicode__(self):
