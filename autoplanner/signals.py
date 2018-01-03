@@ -200,7 +200,6 @@ def set_category_balancing_mode(window_info, organization_pk: int,
 def set_category_balancing_tolerance_time(window_info, organization_pk: int, category_pk: int,
                                           value: SerializedForm(CategoryBalancingToleranceTimeForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
-    print('<----> value %s can_update  %s ' % (value, can_update))
     if can_update and value and value.is_valid():
         balancing_tolerance = value.cleaned_data['balancing_tolerance']
         Category.objects.filter(organization__id=organization_pk, pk=category_pk).update(
