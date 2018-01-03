@@ -21,5 +21,16 @@
     {% with obj=new_category %}
     {% include 'autoplanner/include/category.html' %}
     {% endwith %}
+<script>
+    function debug(obj) {
+        console.warn(obj);
+        console.warn($(obj + ' form').serializeArray());
+        console.warn($(obj + ' form'));
+        console.warn($(obj));
+        console.warn($(obj).serializeArray());
+
+    }
+
+</script>
 </table>
 

@@ -72,10 +72,11 @@
         }
         return false;
     }
-    function task_u(signal_name, obj_id, form) {
-        $('#check_task_' + obj_id).attr('class', 'fa fa-spin fa-spinner');
-        if(form) {
-            $.df.call('autoplanner.forms.' + signal_name, {organization_pk: {{ organization.id|my_simple_str }}, task_pk: obj_id, value: $(form).serializeArray()});
+    function task_u(signal_name, obj_id, rowId) {
+        if(rowId) {
+            var values = serializeMArray(rowId);
+            $('#check_task_' + obj_id).attr('class', 'fa fa-spin fa-spinner');
+            $.df.call('autoplanner.forms.' + signal_name, {organization_pk: {{ organization.id|my_simple_str }}, task_pk: obj_id, value: values});
         }
         else {
             $.df.call('autoplanner.forms.' + signal_name, {organization_pk: {{ organization.id|my_simple_str }}, task_pk: obj_id});

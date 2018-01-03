@@ -237,7 +237,7 @@ def index(request):
         if form.is_valid():
             obj = Organization(name=form.cleaned_data['name'], max_compute_time=1800)
             obj.save()
-            obj.admins = [request.user]
+            obj.admins.set([request.user])
             messages.success(request, _('Organization successfully created.'))
             return HttpResponseRedirect(reverse('index'))
     else:

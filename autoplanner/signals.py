@@ -200,6 +200,7 @@ def set_category_balancing_mode(window_info, organization_pk: int,
 def set_category_balancing_tolerance_time(window_info, organization_pk: int, category_pk: int,
                                           value: SerializedForm(CategoryBalancingToleranceTimeForm)):
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
+    print('<----> value %s can_update  %s ' % (value, can_update))
     if can_update and value and value.is_valid():
         balancing_tolerance = value.cleaned_data['balancing_tolerance']
         Category.objects.filter(organization__id=organization_pk, pk=category_pk).update(
@@ -814,7 +815,7 @@ def set_task_categories(window_info, organization_pk: int, task_pk: int, value: 
     can_update = Organization.query(window_info).filter(pk=organization_pk).count() > 0
     task = Task.objects.filter(organization__id=organization_pk, pk=task_pk).select_related('agent').first()
     if can_update and task and value and value.is_valid():
-        task.categories = value.cleaned_data['categories']
+        task.categories.set(value.cleaned_data['categories'])
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-check')
     elif value:
         add_attribute(window_info, '#check_task_%s' % task_pk, 'class', 'fa fa-remove')
@@ -831,7 +832,7 @@ def add_task(window_info, organization_pk: int, value: SerializedForm(TaskAddFor
                     fixed=bool(agent))
         task.save()
         obj_categories = [x for x in value.cleaned_data['categories'] if x.id in available_category_ids]
-        task.categories = obj_categories
+        task.categories.set(obj_categories)
         categories = list(Category.objects.filter(organization=organization).order_by('name'))
         agents = list(Agent.objects.filter(organization=organization).order_by('name'))
         context = {'organization': organization, 'obj': task, 'obj_categories': {x.id for x in obj_categories},

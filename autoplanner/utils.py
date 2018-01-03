@@ -1,10 +1,10 @@
+import datetime
 import re
 
-from django.core.validators import RegexValidator
 from django.forms import forms
+# noinspection PyProtectedMember
 from django.forms.widgets import Input
 from django.utils.translation import ugettext as _
-import datetime
 
 __author__ = 'Matthieu Gallet'
 
@@ -22,7 +22,10 @@ class TimeDeltaField(forms.Field):
     widget = TimeDeltaInput
 
     def to_python(self, value):
-        return str_to_python(value)
+        try:
+            return str_to_python(value)
+        except ValueError:
+            return datetime.timedelta(seconds=0)
 
 
 def str_to_python(value: str):

@@ -19,3 +19,11 @@ function InverseSelection() {
     });
     return false;
 }
+
+function serializeMArray(rowId) {
+    var result = [];
+    $(rowId + ' form').each(function (index, obj) {
+        result = result.concat($(obj).serializeArray());
+    });
+    return result;
+};
