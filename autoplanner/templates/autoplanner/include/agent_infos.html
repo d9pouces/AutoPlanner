@@ -13,7 +13,7 @@
         compared to other resources, but only for a given type of tasks.
         {% endblocktrans %}
     </p>
-    <table class="table table-stripped" id="agent_infos_{{ agent.id }}-table">
+    <table class="table table-stripped" id="agent_infos_{{ agent.id|my_simple_str }}-table">
         <tr>
             <th>&nbsp;</th>
             <th>{% trans 'Category' %}</th>

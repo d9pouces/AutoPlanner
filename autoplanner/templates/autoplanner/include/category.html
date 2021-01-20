@@ -14,7 +14,7 @@
         <select class="form-control" id="id_balancing_mode_{{ obj.id|my_simple_str }}" name="balancing_mode"
                 {% if obj.id %}onchange="$('#check_category_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_category_balancing_mode', {organization_pk: {{ organization.id|my_simple_str }}{% if obj.id %}, category_pk: {{ obj.id|my_simple_str }}{% endif %}, value: $(this).serializeArray()})"{% endif %}>
             {% for x in balancing_modes %}
-            <option value{% if x.0 %}="{{ x.0 }}" {% endif %} {% if obj.balancing_mode == x.0 %}selected="selected" {% endif %}>{{ x.1 }}
+            <option value{% if x.0 %}="{{ x.0|my_simple_str }}" {% endif %} {% if obj.balancing_mode == x.0 %}selected="selected" {% endif %}>{{ x.1 }}
             </option>
             {% endfor %}
         </select>

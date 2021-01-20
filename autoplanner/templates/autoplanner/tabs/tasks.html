@@ -37,14 +37,14 @@
             <li class="list-group-item active">{% trans 'By category' %}</li>
             <li id="by_category_None" class="filter-tasks list-group-item {% if category_id is None %}active{% endif %}"><a href="#" onclick="return callTask(undefined, undefined, null);">{% trans 'all categories' %}</a></li>
             {% for x in categories %}
-            <li id="by_category_{{ x.id }}" class="filter-tasks list-group-item {% if x.id == category_id %}active{% endif %}"><a href="#" onclick="return callTask(undefined, undefined, {{ x.id }});">{{ x.name }}</a></li>
+            <li id="by_category_{{ x.id|my_simple_str }}" class="filter-tasks list-group-item {% if x.id == category_id %}active{% endif %}"><a href="#" onclick="return callTask(undefined, undefined, {{ x.id|my_simple_str }});">{{ x.name }}</a></li>
             {% endfor %}
         </ul>
         <ul class="list-group">
             <li class="list-group-item active">{% trans 'By agent' %}</li>
             <li id="by_agent_None" class="filter-tasks list-group-item {% if agent_id is None %}active{% endif %}"><a href="#" onclick="return callTask(undefined, null);">{% trans 'all agents' %}</a></li>
             {% for x in agents %}
-            <li id="by_agent_{{ x.id }}" class="filter-tasks list-group-item {% if x.id == agent_id %}active{% endif %}"><a href="#" onclick="callTask(undefined, {{ x.id }});">{{ x.name }}</a></li>
+            <li id="by_agent_{{ x.id|my_simple_str }}" class="filter-tasks list-group-item {% if x.id == agent_id %}active{% endif %}"><a href="#" onclick="callTask(undefined, {{ x.id|my_simple_str }});">{{ x.name }}</a></li>
             {% endfor %}
         </ul>
     </div>

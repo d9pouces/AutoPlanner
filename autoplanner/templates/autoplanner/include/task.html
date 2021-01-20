@@ -54,7 +54,7 @@
                     ({% trans 'not assigned' %})
                 </option>
                 {% for agent in agents %}
-                <option value="{{ agent.id }}" {% if obj.fixed and obj.agent_id == agent.id %}selected="selected" {% endif %}>{{ agent.name }}</option>
+                <option value="{{ agent.id|my_simple_str }}" {% if obj.fixed and obj.agent_id == agent.id %}selected="selected" {% endif %}>{{ agent.name }}</option>
                 {% endfor %}
             </select>
             <small class="agent">{% if not obj.fixed and obj.agent %}{% with name=obj.agent.name %}{% blocktrans %}Proposed to {{ name }}{% endblocktrans %}{% endwith %}{% endif %}</small>

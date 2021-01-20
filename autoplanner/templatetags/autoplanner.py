@@ -1,7 +1,10 @@
+import datetime
+
 from django import template
 from django.forms import TimeInput, DateInput
 from django.utils import formats
 from django.utils.safestring import mark_safe
+from django.utils.timezone import get_default_timezone
 from markdown import markdown as mkdown
 from autoplanner.utils import python_to_str
 
@@ -21,9 +24,10 @@ def timedelta(x):
 
 
 @register.filter
-def input_time(value):
+def input_time(value: datetime.datetime):
     if value is None:
         return mark_safe('')
+    value = value.astimezone(get_default_timezone())
     return mark_safe(formats.localize_input(value, formats.get_format(TimeInput.format_key)[0]))
 
 
@@ -38,6 +42,7 @@ def int_format(value, fmt=''):
 def input_date(value):
     if value is None:
         return mark_safe('')
+    value = value.astimezone(get_default_timezone())
     return mark_safe(formats.localize_input(value, formats.get_format(DateInput.format_key)[0]))
 
 

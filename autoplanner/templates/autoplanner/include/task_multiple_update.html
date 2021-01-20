@@ -12,7 +12,7 @@
             <label for="multiple_update_agent">{% trans 'Affect selection to:' %}</label>
             <select name="agent" class="form-control" id="multiple_update_agent">
                 <option value="">({% trans 'not assigned' %})</option>
-                {% for agent in agents %}<option value="{{ agent.id }}">{{ agent.name }}</option>{% endfor %}
+                {% for agent in agents %}<option value="{{ agent.id|my_simple_str }}">{{ agent.name }}</option>{% endfor %}
             </select>
         </div>
         <p><input name="fix" type="checkbox" value="yes" id="multiple_update_fix"> <label for="multiple_update_fix">{% trans ' or you can only confirm the current proposition,' %}</label>
@@ -21,7 +21,7 @@
             </p>
         <p>{% trans 'Finally, you can set the categories of selected tasks:' %}</p>
         <select name="categories" class="form-control" multiple="multiple">
-            {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+            {% for category in categories %}<option value="{{ category.id|my_simple_str }}">{{ category.name }}</option>{% endfor %}
         </select>
     </div>
     <div class="modal-footer">

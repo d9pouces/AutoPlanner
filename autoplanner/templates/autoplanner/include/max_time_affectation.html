@@ -17,7 +17,7 @@
     </form></td>
     <td><form role="form" {% if obj.id is None %}onsubmit="$('#check_max_time_affectation_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_max_time_affectation', {organization_pk: {{ organization.id|my_simple_str }}, value: serializeMArray('#row_max_time_affectation_{{ obj.id|my_simple_str }}')})"{% endif %}>
         <select name="category" class="form-control" {% if obj.id %}onchange="$('#check_max_time_affectation_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.set_max_time_affectation_category', {organization_pk: {{ organization.id|my_simple_str }}, max_time_affectation_pk: {{ obj.id|my_simple_str }}, value: $(this).serializeArray()})"{% endif %}>
-            {% for category in categories %}<option value="{{ category.id }}" {% if obj.category_id == category.id %}selected="selected"{% endif %}>{{ category.name }}</option>{% endfor %}
+            {% for category in categories %}<option value="{{ category.id|my_simple_str }}" {% if obj.category_id == category.id %}selected="selected"{% endif %}>{{ category.name }}</option>{% endfor %}
         </select>
     </form></td>
     <td><form role="form" {% if obj.id is None %}onsubmit="$('#check_max_time_affectation_{{ obj.id|my_simple_str }}').attr('class', 'fa fa-spin fa-spinner'); return $.df.call('autoplanner.forms.add_max_time_affectation', {organization_pk: {{ organization.id|my_simple_str }}, value: serializeMArray('#row_max_time_affectation_{{ obj.id|my_simple_str }}')})"{% endif %}>
