@@ -1,31 +1,29 @@
 import datetime
 import json
-from django.conf import settings
-from django.db.models import F
-from django.template.response import TemplateResponse
-from django.utils.formats import date_format
-from django.utils.formats import time_format
-from django.views.decorators.cache import never_cache
-import re
 
+import markdown
+from django.conf import settings
 from django.contrib import admin
+from django.contrib import messages
 from django.contrib.admin.options import IS_POPUP_VAR, get_content_type_for_model
 from django.contrib.admin.options import TO_FIELD_VAR
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
-from django.contrib import messages
 from django.contrib.admin.utils import quote
-from django.urls import reverse
+from django.db.models import F
 from django.http.response import HttpResponseRedirect, HttpResponse
-from django.shortcuts import render_to_response, get_object_or_404
+from django.shortcuts import get_object_or_404
 from django.template import RequestContext
+from django.template.response import TemplateResponse
+from django.urls import reverse
+from django.utils.formats import date_format
+from django.utils.formats import time_format
 from django.utils.translation import ugettext_lazy as _
-from djangofloor.celery import app
+from django.views.decorators.cache import never_cache
 from djangofloor.tasks import set_websocket_topics
 from icalendar import Calendar, Event
-import markdown
 
 from autoplanner.admin import OrganizationAdmin
-from autoplanner.forms import MultiplyTaskForm, OrganizationAddForm
+from autoplanner.forms import OrganizationAddForm
 from autoplanner.models import Organization, Task, Category, Agent, API_KEY_VARIABLE, ScheduleRun
 from autoplanner.schedule import Scheduler
 from autoplanner.tasks import compute_schedule, kill_schedule, apply_schedule
@@ -126,7 +124,7 @@ def organization(request, organization_pk):
         'description': markdown.markdown(obj.description),
         'api_key_variable': API_KEY_VARIABLE,
     })
-    return render_to_response('autoplanner/organization.html', template_values, RequestContext(request))
+    return TemplateResponse(request, 'autoplanner/organization.html', context=template_values)
 
 
 @never_cache

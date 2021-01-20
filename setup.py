@@ -2,10 +2,6 @@ import os.path
 import re
 
 from setuptools import setup, find_packages
-import os.path
-import re
-
-from setuptools import setup, find_packages
 
 version = None
 for line in open(os.path.join('autoplanner', '__init__.py'), 'r', encoding='utf-8'):

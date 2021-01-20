@@ -1,4 +1,3 @@
-import celery
 import json
 import os
 import signal
@@ -10,7 +9,7 @@ from django.utils.formats import date_format, time_format
 from django.utils.translation import ugettext_lazy as _
 from djangofloor.celery import app
 from djangofloor.signals.bootstrap3 import notify, SUCCESS, DANGER, INFO
-from djangofloor.signals.html import render_to_client, content, after, replace_with
+from djangofloor.signals.html import render_to_client, after, replace_with
 from djangofloor.wsgi.window_info import WindowInfo, render_to_string
 
 from autoplanner.models import Organization, Task, ScheduleRun, Agent
