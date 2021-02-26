@@ -1,4 +1,4 @@
-aiohttp==3.7.3
+aiohttp==3.7.4
 aiohttp-wsgi==0.8.2
 amqp==2.6.1
 asgiref==3.3.1
