@@ -6,7 +6,7 @@ async-timeout==3.0.1
 asyncio-redis==0.16.0
 attrs==20.3.0
 billiard==3.6.3.0
-celery==4.4.7
+celery==5.2.2
 chardet==3.0.4
 Django==2.2.17
 django-bootstrap3==14.2.0
